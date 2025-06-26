@@ -1,6 +1,6 @@
 <?php
 // admin/dashboard.php - Painel Administrativo de Chamados
-// Esta página exibe a lista de chamados e gerencia a interface do usuário.
+// Este script exibe a lista de chamados e gerencia a interface do usuário.
 // As operações de filtragem e busca agora são feitas via AJAX para uma experiência mais fluida.
 // ATUALIZADO: Aprimoramentos visuais, incluindo sombras, spinner de carregamento e ícones.
 // ATUALIZADO: Tamanho geral do sistema diminuído para melhor visualização em 100% de resolução.
@@ -10,6 +10,8 @@
 // ATUALIZADO: Botões de ação na tabela substituídos por ícones com menu suspenso para status.
 // ATUALIZADO: Lógica JavaScript para os botões de ação e dropdowns movida para este arquivo.
 // ATUALIZADO: Título da tabela com cor primária e linhas da tabela com cores intercaladas mais escuras.
+// ATUALIZADO: Ajustado para o comportamento responsivo da tabela com scroll somente quando necessário e larguras fixas.
+// ATUALIZADO: Refinado o CSS para garantir que as colunas obedeçam às larguras definidas e o ellipsis funcione corretamente de forma mais abrangente.
 
 // Inclui o arquivo de conexão com o banco de dados e inicia a sessão.
 require_once '../conexao.php'; // Caminho ajustado para acessar conexao.php na pasta pai
@@ -36,11 +38,8 @@ $conexao->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel Administrativo - Chamados ETEC</title>
-    <!-- Inclui Tailwind CSS para um estilo moderno e responsivo -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Inclui a fonte Montserrat do Google Fonts para o título -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
-    <!-- Inclui Font Awesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* Define a cor base personalizada */
@@ -112,12 +111,11 @@ $conexao->close();
 
         /* Estilos da tabela */
         table {
-            width: 100%;
+            min-width: 920px; /* Largura mínima total da tabela para ativar scroll */
             border-collapse: collapse;
             margin-top: 15px; /* Diminuído */
             border: 1px solid #5a67d8; /* Borda externa da tabela um pouco mais fina */
             border-radius: 6px; /* Arredondar cantos da tabela */
-            overflow: hidden;
             table-layout: fixed; /* Fixa o layout da tabela para colunas simétricas */
         }
         th, td {
@@ -125,28 +123,29 @@ $conexao->close();
             text-align: left;
             border: 1px solid #99aab5; /* Bordas para células e cabeçalhos um pouco mais finas */
             font-size: 0.85rem; /* Fonte da célula levemente menor */
-            white-space: nowrap; /* Impede a quebra de linha */
-            overflow: hidden; /* Oculta o conteúdo que excede a largura */
-            text-overflow: ellipsis; /* Adiciona "..." ao texto cortado */
+            white-space: nowrap; /* Impede a quebra de linha por padrão */
+            overflow: hidden; /* Oculta o conteúdo que excede a largura por padrão */
+            text-overflow: ellipsis; /* Adiciona "..." ao texto cortado por padrão */
+            word-break: break-all; /* Garante quebras de palavras longas por padrão */
             box-sizing: border-box; /* Inclui padding e border na largura total do elemento */
         }
         thead {
             background-color: #7e0000;
             color: white;
         }
-        /* Larguras específicas para cada coluna para simetria */
-        th:nth-child(1), td:nth-child(1) { width: 4%; } /* ID */
-        th:nth-child(2), td:nth-child(2) { width: 10%; } /* Professor */
-        th:nth-child(3), td:nth-child(3) { width: 11%; } /* Local */
-        th:nth-child(4), td:nth-child(4) { width: 6%; } /* Nº Computador */
-        th:nth-child(5), td:nth-child(5) { width: 11%; } /* Equipamentos */
-        th:nth-child(6), td:nth-child(6) { width: 10%; } /* Descrição (Reduzido para 10%) */
-        th:nth-child(7), td:nth-child(7) { width: 10%; } /* Status */
-        th:nth-child(8), td:nth-child(8) { width: 15%; } /* Envio */
+        /* Larguras específicas para cada coluna em pixels fixos */
+        th:nth-child(1), td:nth-child(1) { width: 40px; } /* ID */
+        th:nth-child(2), td:nth-child(2) { width: 120px; } /* Professor */
+        th:nth-child(3), td:nth-child(3) { width: 130px; } /* Local */
+        th:nth-child(4), td:nth-child(4) { width: 50px; } /* Nº Computador */
+        th:nth-child(5), td:nth-child(5) { width: 100px; } /* Equipamentos */
+        th:nth-child(6), td:nth-child(6) { width: 100px; } /* Descrição */
+        th:nth-child(7), td:nth-child(7) { width: 100px; } /* Status */
+        th:nth-child(8), td:nth-child(8) { width: 150px; } /* Envio */
         /* Override para a coluna 'Ações' (última coluna) - permite quebrar linha e sem reticências */
         th:nth-child(9), td:nth-child(9) {
-            width: 9%; /* Ajustado para ser menor e acomodar ícones */
-            white-space: normal; /* Permite quebra de linha para botões */
+            width: 130px; /* Ações */
+            white-space: normal; /* Permite quebra de linha */
             overflow: visible; /* Garante que os botões não sejam cortados */
             text-overflow: clip; /* Sem reticências */
             text-align: center; /* Centraliza o conteúdo da coluna de ações */
@@ -176,7 +175,7 @@ $conexao->close();
 
         h1 {
             font-family: 'Montserrat', sans-serif;
-            font-size: 2rem; /* Diminuindo o tamanho do h1 */
+            font-size: 2rem; /* Diminuindo o h1 */
             color: var(--primary-color); /* Cor primária para o título */
         }
         .custom-hr {
@@ -305,10 +304,7 @@ $conexao->close();
             </div>
         <?php endif; ?>
 
-        <div class="flex justify-between items-center mb-5 flex-wrap gap-3"> <!-- Margem e gap ajustados -->
-            <p class="text-base text-gray-700">Bem-vindo(a), <span class="font-semibold text-primary"><?php echo htmlspecialchars($_SESSION['usuario']); ?></span>!</p> <!-- Fonte ajustada -->
-            <div class="flex gap-3"> <!-- Gap ajustado -->
-                <a href="criar_admin.php" class="btn-primary bg-green-600 hover:bg-green-700">
+        <div class="flex justify-between items-center mb-5 flex-wrap gap-3"> <p class="text-base text-gray-700">Bem-vindo(a), <span class="font-semibold text-primary"><?php echo htmlspecialchars($_SESSION['usuario']); ?></span>!</p> <div class="flex gap-3"> <a href="criar_admin.php" class="btn-primary bg-green-600 hover:bg-green-700">
                     <i class="fas fa-user-plus"></i> Criar Novo Admin
                 </a>
                 <a href="logout.php" class="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-200 ease-in-out">
@@ -317,14 +313,10 @@ $conexao->close();
             </div>
         </div>
 
-        <!-- Formulário de Filtro e Busca -->
-        <div id="filterInputs" class="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm"> <!-- Margem e padding ajustados -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3"> <!-- Gap ajustado -->
-                <div>
+        <div id="filterInputs" class="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm"> <div class="grid grid-cols-1 md:grid-cols-4 gap-3"> <div>
                     <label for="status" class="block text-sm font-medium text-gray-700 mb-1 text-primary">Filtrar por Status:</label>
                     <select id="status" name="status" onchange="fetchAndDisplayChamados()"
-                            class="mt-1 block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm"> <!-- Padding ajustado -->
-                        <option value="">Todos</option>
+                            class="mt-1 block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm"> <option value="">Todos</option>
                         <option value="Pendente">Pendente</option>
                         <option value="Em andamento">Em andamento</option>
                         <option value="Resolvido">Resolvido</option>
@@ -345,30 +337,25 @@ $conexao->close();
                     <label for="local_detalhe" class="block text-sm font-medium text-gray-700 mb-1 text-primary">Especifique:</label>
                     <select id="local_detalhe" name="local_detalhe" onchange="fetchAndDisplayChamados()"
                             class="mt-1 block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm">
-                        <!-- Opções serão carregadas via JavaScript -->
-                    </select>
+                        </select>
                 </div>
                 <div>
                     <label for="busca_nome_professor" class="block text-sm font-medium text-gray-700 mb-1 text-primary">Buscar por nome:</label>
                     <input type="text" id="busca_nome_professor" name="busca_nome_professor" placeholder="Nome do professor..." onkeyup="debounceFetch()"
                            class="mt-1 block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm">
                 </div>
-                <div class="md:col-span-4 flex justify-center mt-3"> <!-- Margem ajustada -->
-                    <button type="button" id="clearFiltersBtn" onclick="clearFilters()" class="ml-3 px-5 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-gray-400 transition duration-200 ease-in-out">Limpar Filtros</button>
+                <div class="md:col-span-4 flex justify-center mt-3"> <button type="button" id="clearFiltersBtn" onclick="clearFilters()" class="ml-3 px-5 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-gray-400 transition duration-200 ease-in-out">Limpar Filtros</button>
                 </div>
             </div>
         </div>
 
-        <!-- Indicador de Carregamento -->
         <div id="loadingIndicator" class="loading-indicator">
             <div class="spinner"></div>
             <span>Carregando chamados...</span>
         </div>
 
-        <!-- Tabela de Chamados será carregada aqui via AJAX -->
-        <div id="chamadosTableContainer">
-            <!-- Conteúdo da tabela será injetado aqui -->
-        </div>
+        <div id="chamadosTableContainer" class="overflow-x-auto">
+            </div>
     </div>
 
     <script>

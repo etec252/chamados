@@ -4,6 +4,8 @@
 // ATUALIZADO: Equipamentos afetados agora são exibidos com espaço após a vírgula.
 // ATUALIZADO: Botões de ação substituídos por ícones com menu suspenso para status.
 // ATUALIZADO: Código JavaScript para manipulação de eventos movido para dashboard.php.
+// ATUALIZADO: Removido 'min-w-full' e 'overflow-hidden' da tag <table> para permitir rolagem horizontal e fixar larguras.
+// ATUALIZADO: Data de envio formatada para o padrão brasileiro (DD/MM/AAAA HH:MM).
 
 // Inclui o arquivo de conexão com o banco de dados.
 require_once '../conexao.php'; // Caminho ajustado para acessar conexao.php na pasta pai
@@ -76,7 +78,7 @@ $conexao->close();
 // Inicia a renderização do HTML da tabela (apenas o corpo da tabela)
 if (!empty($chamados)): ?>
     <div class="overflow-x-auto">
-        <table class="min-w-full bg-white overflow-hidden">
+        <table class="bg-white">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -101,35 +103,31 @@ if (!empty($chamados)): ?>
                     
                     // Adiciona um espaço após a vírgula para os equipamentos afetados
                     $display_equipamentos = str_replace(',', ', ', htmlspecialchars($chamado['equipamentos_afetados']));
+
+                    // Formata a data de envio para o padrão brasileiro DD/MM/AAAA HH:MM
+                    $data_envio_formatada = (new DateTime($chamado['data_envio']))->format('d/m/Y H:i');
                 ?>
                 <tr>
                     <td><?php echo htmlspecialchars($chamado['id']); ?></td>
                     <td><?php echo htmlspecialchars($chamado['nome_professor']); ?></td>
                     <td><?php echo $display_local_detalhe; ?></td>
                     <td><?php echo htmlspecialchars($chamado['numero_computador']); ?></td>
-                    <td><?php echo $display_equipamentos; ?></td> <!-- Usa a nova variável formatada -->
-                    <td><?php echo htmlspecialchars($chamado['descricao']); ?></td>
+                    <td><?php echo $display_equipamentos; ?></td> <td><?php echo htmlspecialchars($chamado['descricao']); ?></td>
                     <td>
                         <span class="status-badge status-<?php echo str_replace(' ', '-', htmlspecialchars($chamado['status'])); ?>">
                             <?php echo htmlspecialchars($chamado['status']); ?>
                         </span>
                     </td>
-                    <td><?php echo htmlspecialchars($chamado['data_envio']); ?></td>
-                    <td class="text-center relative"> <!-- Adicionado 'relative' para posicionamento do dropdown -->
-                        <!-- Botões de Ação com Ícones -->
-                        <div class="flex justify-center items-center gap-2">
-                            <!-- Botão de Editar Status (Ícone) -->
+                    <td><?php echo $data_envio_formatada; ?></td> <td class="text-center relative"> <div class="flex justify-center items-center gap-2">
                             <button type="button" class="action-button edit-status-btn" data-id="<?php echo htmlspecialchars($chamado['id']); ?>">
                                 <i class="fas fa-edit"></i>
                             </button>
 
-                            <!-- Botão de Excluir Chamado (Ícone) -->
                             <button type="button" class="action-button delete-btn" data-id="<?php echo htmlspecialchars($chamado['id']); ?>">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
 
-                        <!-- Dropdown de Status (Inicialmente oculto) -->
                         <div id="status-dropdown-<?php echo htmlspecialchars($chamado['id']); ?>" class="status-dropdown hidden">
                             <span class="status-option Pendente" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Pendente">Pendente</span>
                             <span class="status-option Em-andamento" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Em andamento">Em andamento</span>
