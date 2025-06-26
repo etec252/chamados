@@ -2,6 +2,7 @@
 // index.php - Formulário de Cadastro de Chamados
 // Este arquivo exibe o formulário para os usuários registrarem novos chamados,
 // com o campo "Número do Computador" unificado para aceitar números ou "prof".
+// ATUALIZADO: Lógica para "Sala Maker" para exibir o campo "Número do PC" com range 1-15.
 
 // Inclui o arquivo de conexão com o banco de dados.
 require_once 'conexao.php';
@@ -262,15 +263,43 @@ if (isset($_SESSION['mensagem'])) {
                 }
 
                 // Lógica para Número do Computador (campo de texto unificado)
-                if (tipoSelecionado === 'Laboratório' || tipoSelecionado === 'Carrinho') {
+                // Adiciona um listener para os botões de rádio de local_detalhe para atualizar o campo de número do computador
+                const localDetalheRadiosList = localDetalheRadios.querySelectorAll('input[name="local_detalhe"]');
+                localDetalheRadiosList.forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        const detalheSelecionado = radio.value;
+                        if (detalheSelecionado === 'Sala Maker') {
+                            numeroComputadorContainer.style.display = 'block';
+                            numeroComputadorInput.setAttribute('required', 'required');
+                            numeroComputadorInput.placeholder = "1-15";
+                        } else if (tipoSelecionado === 'Laboratório' || tipoSelecionado === 'Carrinho') {
+                            numeroComputadorContainer.style.display = 'block';
+                            numeroComputadorInput.setAttribute('required', 'required');
+                            numeroComputadorInput.placeholder = (tipoSelecionado === 'Laboratório') ? "1-20 ou 'prof'" : "1-30";
+                        } else {
+                            numeroComputadorContainer.style.display = 'none';
+                            numeroComputadorInput.removeAttribute('required');
+                            numeroComputadorInput.value = '';
+                        }
+                    });
+                });
+
+                // Lógica inicial para o campo de número do computador ao carregar ou mudar o tipo principal
+                const anyLocalDetalheSelected = document.querySelector('input[name="local_detalhe"]:checked');
+                if (tipoSelecionado === 'Laboratório' || tipoSelecionado === 'Carrinho' || (tipoSelecionado === 'Sala' && anyLocalDetalheSelected && anyLocalDetalheSelected.value === 'Sala Maker')) {
                     numeroComputadorContainer.style.display = 'block';
                     numeroComputadorInput.setAttribute('required', 'required');
-                    // A validação de range e a palavra 'prof' serão feitas no backend
-                    numeroComputadorInput.placeholder = (tipoSelecionado === 'Laboratório') ? "1-20 ou 'prof'" : "1-30"; // Corrigido aqui
+                    if (tipoSelecionado === 'Laboratório') {
+                        numeroComputadorInput.placeholder = "1-20 ou 'prof'";
+                    } else if (tipoSelecionado === 'Carrinho') {
+                        numeroComputadorInput.placeholder = "1-30";
+                    } else if (tipoSelecionado === 'Sala' && anyLocalDetalheSelected && anyLocalDetalheSelected.value === 'Sala Maker') {
+                        numeroComputadorInput.placeholder = "1-15";
+                    }
                 } else {
                     numeroComputadorContainer.style.display = 'none';
                     numeroComputadorInput.removeAttribute('required');
-                    numeroComputadorInput.value = ''; // Limpa o valor quando escondido
+                    numeroComputadorInput.value = '';
                 }
             }
 

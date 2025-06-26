@@ -2,6 +2,8 @@
 // admin/get_chamados.php - Endpoint AJAX para Chamados
 // Este script é chamado via AJAX para retornar os dados dos chamados filtrados em HTML.
 // ATUALIZADO: Equipamentos afetados agora são exibidos com espaço após a vírgula.
+// ATUALIZADO: Botões de ação substituídos por ícones com menu suspenso para status.
+// ATUALIZADO: Código JavaScript para manipulação de eventos movido para dashboard.php.
 
 // Inclui o arquivo de conexão com o banco de dados.
 require_once '../conexao.php'; // Caminho ajustado para acessar conexao.php na pasta pai
@@ -113,28 +115,25 @@ if (!empty($chamados)): ?>
                         </span>
                     </td>
                     <td><?php echo htmlspecialchars($chamado['data_envio']); ?></td>
-                    <td class="text-center whitespace-nowrap">
-                        <!-- Botões de Ação -->
+                    <td class="text-center relative"> <!-- Adicionado 'relative' para posicionamento do dropdown -->
+                        <!-- Botões de Ação com Ícones -->
                         <div class="flex justify-center items-center gap-2">
-                            <!-- Formulário para Alterar Status -->
-                            <form action="alterar_status.php" method="POST" class="inline-block">
-                                <input type="hidden" name="id" value="<?php echo htmlspecialchars($chamado['id']); ?>">
-                                <select name="novo_status" onchange="this.form.submit()"
-                                        class="px-3 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm">
-                                    <option value="Pendente" <?php echo $chamado['status'] == 'Pendente' ? 'selected' : ''; ?>>Pendente</option>
-                                    <option value="Em andamento" <?php echo $chamado['status'] == 'Em andamento' ? 'selected' : ''; ?>>Em andamento</option>
-                                    <option value="Resolvido" <?php echo $chamado['status'] == 'Resolvido' ? 'selected' : ''; ?>>Resolvido</option>
-                                </select>
-                            </form>
+                            <!-- Botão de Editar Status (Ícone) -->
+                            <button type="button" class="action-button edit-status-btn" data-id="<?php echo htmlspecialchars($chamado['id']); ?>">
+                                <i class="fas fa-edit"></i>
+                            </button>
 
-                            <!-- Formulário para Excluir Chamado -->
-                            <form action="excluir_chamado.php" method="POST" class="inline-block" onsubmit="return confirm('Tem certeza que deseja excluir este chamado?');">
-                                <input type="hidden" name="id" value="<?php echo htmlspecialchars($chamado['id']); ?>">
-                                <button type="submit"
-                                        class="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-md shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-200 ease-in-out">
-                                    Excluir
-                                </button>
-                            </form>
+                            <!-- Botão de Excluir Chamado (Ícone) -->
+                            <button type="button" class="action-button delete-btn" data-id="<?php echo htmlspecialchars($chamado['id']); ?>">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+
+                        <!-- Dropdown de Status (Inicialmente oculto) -->
+                        <div id="status-dropdown-<?php echo htmlspecialchars($chamado['id']); ?>" class="status-dropdown hidden">
+                            <span class="status-option Pendente" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Pendente">Pendente</span>
+                            <span class="status-option Em-andamento" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Em andamento">Em andamento</span>
+                            <span class="status-option Resolvido" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Resolvido">Resolvido</span>
                         </div>
                     </td>
                 </tr>

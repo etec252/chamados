@@ -4,8 +4,10 @@
 // valida-os e insere um novo chamado no banco de dados.
 // ATUALIZADO: Validação rigorosa para 'numero_computador' e remoção de 'nome_solicitante'.
 // Detalhe: 'prof' é aceito SOMENTE para Laboratório, não para Carrinho.
+// ATUALIZADO: Adicionada validação para o range 1-15 do campo 'numero_computador' quando 'Sala Maker' é selecionada.
+// ATUALIZADO: O campo 'numero_computador' agora é preenchido com "prof" automaticamente se não for um local que exija número.
 
-// Inclui o arquivo de conexão com o banco de dados.
+// Inclui o arquivo de c\aonexão com o banco de dados.
 require_once 'conexao.php';
 
 // Verifica se a requisição é um POST e se os campos necessários foram enviados.
@@ -57,9 +59,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Validação e processamento do Número do Computador
-    if ($local_tipo === 'Laboratório' || $local_tipo === 'Carrinho') {
+    if ($local_tipo === 'Laboratório' || $local_tipo === 'Carrinho' || ($local_tipo === 'Sala' && $local_detalhe === 'Sala Maker')) {
         if (empty($numero_computador_input)) {
-            $_SESSION['mensagem'] = "Erro: O número do computador é obrigatório para laboratório ou carrinho.";
+            $_SESSION['mensagem'] = "Erro: O número do computador é obrigatório para laboratório, carrinho ou Sala Maker.";
             header("Location: index.php");
             exit();
         }
@@ -80,7 +82,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 exit();
             }
 
-            // Validação de range específica para Laboratório e Carrinho
+            // Validação de range específica para Laboratório, Carrinho e Sala Maker
             if ($local_tipo === 'Laboratório') {
                 if ($numero_computador_int > 20) {
                     $_SESSION['mensagem'] = "Erro: Para laboratório, o número do computador deve ser entre 1 e 20 ou 'prof'.";
@@ -88,10 +90,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     exit();
                 }
             } elseif ($local_tipo === 'Carrinho') {
-                // Para Carrinho, a validação já passou pelo 'prof' check acima.
-                // Agora, apenas valida o range numérico.
                 if ($numero_computador_int > 30) {
                     $_SESSION['mensagem'] = "Erro: Para carrinho, o número do computador deve ser entre 1 e 30.";
+                    header("Location: index.php");
+                    exit();
+                }
+            } elseif ($local_tipo === 'Sala' && $local_detalhe === 'Sala Maker') {
+                if ($numero_computador_int > 15) {
+                    $_SESSION['mensagem'] = "Erro: Para Sala Maker, o número do computador deve ser entre 1 e 15.";
                     header("Location: index.php");
                     exit();
                 }
@@ -99,7 +105,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $numero_computador_para_bd = (string)$numero_computador_int; // Salva como string de número
         }
     } else {
-        $numero_computador_para_bd = null; // Garante que seja NULL se não for um tipo que exija número
+        // Se o tipo de local não exige um número de computador específico, define como 'prof'
+        $numero_computador_para_bd = 'prof'; 
     }
 
 
@@ -148,4 +155,3 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     header("Location: index.php");
     exit();
 }
-?>

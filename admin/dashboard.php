@@ -6,6 +6,10 @@
 // ATUALIZADO: Tamanho geral do sistema diminuído para melhor visualização em 100% de resolução.
 // ATUALIZADO: Mensagens de feedback com animação e botão de fechar.
 // ATUALIZADO: Botão "Limpar Filtros" visível apenas quando filtros são aplicados.
+// ATUALIZADO: Larguras das colunas da tabela ajustadas para simetria e colunas 'Descrição' e 'Ações' menores.
+// ATUALIZADO: Botões de ação na tabela substituídos por ícones com menu suspenso para status.
+// ATUALIZADO: Lógica JavaScript para os botões de ação e dropdowns movida para este arquivo.
+// ATUALIZADO: Título da tabela com cor primária e linhas da tabela com cores intercaladas mais escuras.
 
 // Inclui o arquivo de conexão com o banco de dados e inicia a sessão.
 require_once '../conexao.php'; // Caminho ajustado para acessar conexao.php na pasta pai
@@ -114,21 +118,49 @@ $conexao->close();
             border: 1px solid #5a67d8; /* Borda externa da tabela um pouco mais fina */
             border-radius: 6px; /* Arredondar cantos da tabela */
             overflow: hidden;
+            table-layout: fixed; /* Fixa o layout da tabela para colunas simétricas */
         }
         th, td {
             padding: 10px 12px; /* Padding diminuído */
             text-align: left;
             border: 1px solid #99aab5; /* Bordas para células e cabeçalhos um pouco mais finas */
             font-size: 0.85rem; /* Fonte da célula levemente menor */
+            white-space: nowrap; /* Impede a quebra de linha */
+            overflow: hidden; /* Oculta o conteúdo que excede a largura */
+            text-overflow: ellipsis; /* Adiciona "..." ao texto cortado */
+            box-sizing: border-box; /* Inclui padding e border na largura total do elemento */
         }
-        th {
-            background-color: var(--primary-color);
+        thead {
+            background-color: #7e0000;
             color: white;
-            font-weight: 600;
         }
-        tr:hover {
-            background-color: #f0f4f8;
+        /* Larguras específicas para cada coluna para simetria */
+        th:nth-child(1), td:nth-child(1) { width: 4%; } /* ID */
+        th:nth-child(2), td:nth-child(2) { width: 10%; } /* Professor */
+        th:nth-child(3), td:nth-child(3) { width: 11%; } /* Local */
+        th:nth-child(4), td:nth-child(4) { width: 6%; } /* Nº Computador */
+        th:nth-child(5), td:nth-child(5) { width: 11%; } /* Equipamentos */
+        th:nth-child(6), td:nth-child(6) { width: 10%; } /* Descrição (Reduzido para 10%) */
+        th:nth-child(7), td:nth-child(7) { width: 10%; } /* Status */
+        th:nth-child(8), td:nth-child(8) { width: 15%; } /* Envio */
+        /* Override para a coluna 'Ações' (última coluna) - permite quebrar linha e sem reticências */
+        th:nth-child(9), td:nth-child(9) {
+            width: 9%; /* Ajustado para ser menor e acomodar ícones */
+            white-space: normal; /* Permite quebra de linha para botões */
+            overflow: visible; /* Garante que os botões não sejam cortados */
+            text-overflow: clip; /* Sem reticências */
+            text-align: center; /* Centraliza o conteúdo da coluna de ações */
+            position: relative; /* Para posicionar o dropdown */
         }
+
+        /* Cores intercaladas para as linhas da tabela */
+        tbody tr:nth-child(odd) {
+            background-color:rgb(255, 255, 255); /* Cor para linhas ímpares (um cinza um pouco mais escuro) */
+        }
+        tbody tr:nth-child(even) {
+            background-color:rgb(252, 234, 234); /* Cor para linhas pares (um cinza ainda mais escuro) */
+        }
+
         .status-badge {
             padding: 3px 6px; /* Diminuído */
             border-radius: 4px; /* Diminuído */
@@ -145,11 +177,15 @@ $conexao->close();
         h1 {
             font-family: 'Montserrat', sans-serif;
             font-size: 2rem; /* Diminuindo o tamanho do h1 */
-            color: var(--primary-color);
+            color: var(--primary-color); /* Cor primária para o título */
         }
         .custom-hr {
+            border: none;
+            height: 2px; /* Espessura da linha */
+            background: linear-gradient(to right, transparent, var(--primary-color), transparent); /* Gradiente para efeito minimalista */
             margin: 1rem auto; /* Ajuste para um espaço menor */
             width: 70%; /* Diminuído */
+            border-radius: 1px; /* Cantos arredondados para a linha */
         }
         .btn-primary {
             background-color: var(--primary-color);
@@ -187,6 +223,71 @@ $conexao->close();
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* Estilos para os novos botões de ação com ícones */
+        .action-button {
+            padding: 0.4rem 0.6rem; /* Padding menor para botões compactos */
+            border-radius: 0.3rem;
+            font-size: 0.9rem; /* Tamanho do ícone */
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1; /* Garante que o ícone fique centralizado verticalmente */
+        }
+        .edit-status-btn {
+            background-color: #3b82f6; /* Azul */
+            color: white;
+            margin-right: 0.5rem; /* Espaçamento entre os botões */
+        }
+        .edit-status-btn:hover {
+            background-color: #2563eb;
+        }
+        .delete-btn {
+            background-color: #ef4444; /* Vermelho */
+            color: white;
+        }
+        .delete-btn:hover {
+            background-color: #dc2626;
+        }
+
+        /* Estilos para o dropdown de status */
+        .status-dropdown {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            min-width: 120px; /* Largura mínima para o dropdown */
+            text-align: left;
+            padding: 0.5rem;
+            top: 100%; /* Posiciona abaixo do botão */
+            left: 50%;
+            transform: translateX(-50%); /* Centraliza o dropdown */
+            margin-top: 5px; /* Pequena margem do botão */
+        }
+        .status-dropdown .status-option {
+            display: block;
+            padding: 0.4rem 0.8rem;
+            color: #374151;
+            text-decoration: none;
+            cursor: pointer;
+            border-radius: 0.3rem;
+        }
+        .status-dropdown .status-option:hover {
+            background-color: #f3f4f6;
+        }
+        /* Cores para as opções de status no dropdown */
+        .status-dropdown .status-option.Pendente { color: #92400e; }
+        .status-dropdown .status-option.Em-andamento { color: #1e40af; }
+        .status-dropdown .status-option.Resolvido { color: #065f46; }
+
+        /* Utilitário para esconder/mostrar */
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
@@ -282,6 +383,93 @@ $conexao->close();
         const loadingIndicator = document.getElementById('loadingIndicator');
         const clearFiltersBtn = document.getElementById('clearFiltersBtn'); // Novo: referência ao botão
 
+        // Função para fechar todos os dropdowns de status abertos
+        function closeAllStatusDropdowns() {
+            document.querySelectorAll('.status-dropdown').forEach(dropdown => {
+                dropdown.classList.add('hidden');
+            });
+        }
+
+        // Função para anexar listeners aos botões de ação (chamada após carregar a tabela)
+        function attachActionListeners() {
+            // Adiciona listeners aos botões de edição de status
+            document.querySelectorAll('.edit-status-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const chamadoId = this.dataset.id;
+                    const dropdown = document.getElementById(`status-dropdown-${chamadoId}`);
+                    
+                    // Fecha outros dropdowns antes de abrir este
+                    closeAllStatusDropdowns();
+                    
+                    dropdown.classList.toggle('hidden'); // Alterna a visibilidade
+                });
+            });
+
+            // Adiciona listeners às opções dentro dos dropdowns de status
+            document.querySelectorAll('.status-dropdown .status-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const chamadoId = this.dataset.id;
+                    const novoStatus = this.dataset.status;
+
+                    // Cria um formulário temporário e o submete
+                    const form = document.createElement('form');
+                    form.action = 'alterar_status.php';
+                    form.method = 'POST';
+                    form.style.display = 'none'; // Oculta o formulário
+
+                    const idInput = document.createElement('input');
+                    idInput.type = 'hidden';
+                    idInput.name = 'id';
+                    idInput.value = chamadoId;
+                    form.appendChild(idInput);
+
+                    const statusInput = document.createElement('input');
+                    statusInput.type = 'hidden';
+                    statusInput.name = 'novo_status';
+                    statusInput.value = novoStatus;
+                    form.appendChild(statusInput);
+
+                    document.body.appendChild(form);
+                    form.submit();
+
+                    closeAllStatusDropdowns(); // Fecha o dropdown após a seleção
+                });
+            });
+
+            // Adiciona listeners aos botões de exclusão
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const chamadoId = this.dataset.id;
+                    // Em vez de window.confirm, você pode usar um modal customizado aqui.
+                    // Por simplicidade, vou usar um prompt básico para demonstração, 
+                    // mas em produção, substitua por um modal UI.
+                    if (confirm('Tem certeza que deseja excluir este chamado?')) {
+                        const form = document.createElement('form');
+                        form.action = 'excluir_chamado.php';
+                        form.method = 'POST';
+                        form.style.display = 'none';
+
+                        const idInput = document.createElement('input');
+                        idInput.type = 'hidden';
+                        idInput.name = 'id';
+                        idInput.value = chamadoId;
+                        form.appendChild(idInput);
+
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                });
+            });
+
+            // Fecha os dropdowns se clicar fora deles
+            document.addEventListener('click', function(event) {
+                if (!event.target.closest('.action-button') && !event.target.closest('.status-dropdown')) {
+                    closeAllStatusDropdowns();
+                }
+            });
+        }
+
+
         // Função para buscar e exibir os chamados via AJAX
         async function fetchAndDisplayChamados() {
             loadingIndicator.style.display = 'flex'; // Mostra o indicador de carregamento como flex
@@ -307,6 +495,7 @@ $conexao->close();
                 }
                 const html = await response.text();
                 chamadosTableContainer.innerHTML = html;
+                attachActionListeners(); // Chama a função para anexar os listeners após a tabela ser carregada
             }
             catch (error) {
                 console.error("Erro ao buscar chamados:", error);
@@ -338,21 +527,16 @@ $conexao->close();
                 }
                 localDetalheFilterContainer.style.display = 'block';
             } else if (tipoSelecionado === 'Sala') {
+                localDetalheContainer.style.display = 'block'; // Certifica que o container esteja visível para Salas
                 for (let i = 1; i <= 7; i++) {
                     options.push(`Sala ${i}`);
                 }
                 options.push('Sala Maker');
-                localDetalheFilterContainer.style.display = 'block';
             } else if (tipoSelecionado === 'Multimeios') {
                 for (let i = 1; i <= 2; i++) {
                     options.push(`Multimeios ${i}`);
                 }
                 localDetalheFilterContainer.style.display = 'block';
-            } else if (tipoSelecionado === 'Carrinho') {
-                // Se 'Carrinho' for selecionado, oculta o contêiner do filtro de detalhe.
-                localDetalheFilterContainer.style.display = 'none';
-                // Garante que o valor do filtro de detalhe seja resetado quando o contêiner é ocultado.
-                localDetalheSelect.value = ''; 
             } else {
                 localDetalheFilterContainer.style.display = 'none'; // Esconde se for "Todos" ou outro vazio
                 localDetalheSelect.value = ''; // Reseta o valor
