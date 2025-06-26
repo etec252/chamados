@@ -123,11 +123,8 @@ $conexao->close();
             text-align: left;
             border: 1px solid #99aab5; /* Bordas para células e cabeçalhos um pouco mais finas */
             font-size: 0.85rem; /* Fonte da célula levemente menor */
-            white-space: nowrap; /* Impede a quebra de linha por padrão */
-            overflow: hidden; /* Oculta o conteúdo que excede a largura por padrão */
-            text-overflow: ellipsis; /* Adiciona "..." ao texto cortado por padrão */
-            word-break: break-all; /* Garante quebras de palavras longas por padrão */
             box-sizing: border-box; /* Inclui padding e border na largura total do elemento */
+            /* Removidas white-space, overflow, text-overflow, word-break daqui */
         }
         thead {
             background-color: #7e0000;
@@ -142,6 +139,17 @@ $conexao->close();
         th:nth-child(6), td:nth-child(6) { width: 100px; } /* Descrição */
         th:nth-child(7), td:nth-child(7) { width: 100px; } /* Status */
         th:nth-child(8), td:nth-child(8) { width: 150px; } /* Envio */
+
+        /* Nova classe para o conteúdo dentro das células (DIV interna) */
+        .truncate-content {
+            white-space: nowrap; /* Garante que o conteúdo fique em uma única linha */
+            overflow: hidden; /* Esconde o conteúdo que transborda */
+            text-overflow: ellipsis; /* Adiciona "..." ao conteúdo truncado */
+            word-break: break-all; /* Quebra palavras longas se necessário */
+            display: block; /* Essencial para que overflow e text-overflow funcionem corretamente dentro da TD */
+            max-width: 100%; /* Garante que a div não empurre a largura da TD */
+        }
+
         /* Override para a coluna 'Ações' (última coluna) - permite quebrar linha e sem reticências */
         th:nth-child(9), td:nth-child(9) {
             width: 130px; /* Ações */
@@ -150,6 +158,7 @@ $conexao->close();
             text-overflow: clip; /* Sem reticências */
             text-align: center; /* Centraliza o conteúdo da coluna de ações */
             position: relative; /* Para posicionar o dropdown */
+            /* Remover a classe truncate-content desta célula no HTML */
         }
 
         /* Cores intercaladas para as linhas da tabela */
@@ -304,7 +313,10 @@ $conexao->close();
             </div>
         <?php endif; ?>
 
-        <div class="flex justify-between items-center mb-5 flex-wrap gap-3"> <p class="text-base text-gray-700">Bem-vindo(a), <span class="font-semibold text-primary"><?php echo htmlspecialchars($_SESSION['usuario']); ?></span>!</p> <div class="flex gap-3"> <a href="criar_admin.php" class="btn-primary bg-green-600 hover:bg-green-700">
+        <div class="flex justify-between items-center mb-5 flex-wrap gap-3">
+            <p class="text-base text-gray-700">Bem-vindo(a), <span class="font-semibold text-primary"><?php echo htmlspecialchars($_SESSION['usuario']); ?></span>!</p>
+            <div class="flex gap-3">
+                <a href="criar_admin.php" class="btn-primary bg-green-600 hover:bg-green-700">
                     <i class="fas fa-user-plus"></i> Criar Novo Admin
                 </a>
                 <a href="logout.php" class="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-200 ease-in-out">
@@ -313,10 +325,13 @@ $conexao->close();
             </div>
         </div>
 
-        <div id="filterInputs" class="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm"> <div class="grid grid-cols-1 md:grid-cols-4 gap-3"> <div>
+        <div id="filterInputs" class="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div>
                     <label for="status" class="block text-sm font-medium text-gray-700 mb-1 text-primary">Filtrar por Status:</label>
                     <select id="status" name="status" onchange="fetchAndDisplayChamados()"
-                            class="mt-1 block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm"> <option value="">Todos</option>
+                            class="mt-1 block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm">
+                        <option value="">Todos</option>
                         <option value="Pendente">Pendente</option>
                         <option value="Em andamento">Em andamento</option>
                         <option value="Resolvido">Resolvido</option>
@@ -344,7 +359,8 @@ $conexao->close();
                     <input type="text" id="busca_nome_professor" name="busca_nome_professor" placeholder="Nome do professor..." onkeyup="debounceFetch()"
                            class="mt-1 block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm">
                 </div>
-                <div class="md:col-span-4 flex justify-center mt-3"> <button type="button" id="clearFiltersBtn" onclick="clearFilters()" class="ml-3 px-5 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-gray-400 transition duration-200 ease-in-out">Limpar Filtros</button>
+                <div class="md:col-span-4 flex justify-center mt-3">
+                    <button type="button" id="clearFiltersBtn" onclick="clearFilters()" class="ml-3 px-5 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-gray-400 transition duration-200 ease-in-out">Limpar Filtros</button>
                 </div>
             </div>
         </div>
