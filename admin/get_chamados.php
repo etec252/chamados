@@ -90,7 +90,7 @@ if (!empty($chamados)): ?>
                 <th>Equipamentos</th>
                 <th>Descrição</th>
                 <th>Status</th>
-                <th>Abretura</th>
+                <th>Abertura</th>
                 <th class="text-center">Ações</th>
             </tr>
         </thead>

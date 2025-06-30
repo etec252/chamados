@@ -138,10 +138,10 @@ $conexao->close();
         th:nth-child(1), td:nth-child(1) { width: 30px; } /* ID */
         th:nth-child(2), td:nth-child(2) { width: 100px; } /* Professor */
         th:nth-child(3), td:nth-child(3) { width: 100px; } /* Local */
-        th:nth-child(4), td:nth-child(4) { width: 45px; } /* Nº Computador */
-        th:nth-child(5), td:nth-child(5) { width: 110px; } /* Equipamentos */
-        th:nth-child(6), td:nth-child(6) { width: 110px; } /* Descrição */
-        th:nth-child(7), td:nth-child(7) { width: 100px; } /* Status */
+        th:nth-child(4), td:nth-child(4) { width: 55px; } /* Nº Computador */
+        th:nth-child(5), td:nth-child(5) { width: 100px; } /* Equipamentos */
+        th:nth-child(6), td:nth-child(6) { width: 105px; } /* Descrição */
+        th:nth-child(7), td:nth-child(7) { width: 95px; } /* Status */
         th:nth-child(8), td:nth-child(8) { width: 120px; } /* Envio */
 
         /* Nova classe para o conteúdo dentro das células (DIV interna) */
