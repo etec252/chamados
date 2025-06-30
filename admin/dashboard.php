@@ -45,7 +45,7 @@ $conexao->close();
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
+    <link rel="icon" href="/path/to/your/favicon.ico" type="image/x-icon"> <style>
         /* Define a cor base personalizada */
         :root {
             --primary-color: #7e0000;
@@ -135,7 +135,7 @@ $conexao->close();
             color: white;
         }
         /* Larguras específicas para cada coluna em pixels fixos */
-        th:nth-child(1), td:nth-child(1) { width: 30px; } /* ID */
+        th:nth-child(1), td:nth-child(1) { width: 35px; } /* ID */
         th:nth-child(2), td:nth-child(2) { width: 100px; } /* Professor */
         th:nth-child(3), td:nth-child(3) { width: 100px; } /* Local */
         th:nth-child(4), td:nth-child(4) { width: 55px; } /* Nº Computador */
@@ -388,6 +388,30 @@ $conexao->close();
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* Mobile specific adjustments (removed display:none for button-text) */
+        @media (max-width: 768px) {
+            .btn-primary {
+                padding: 0.6rem 0.8rem; /* Adjust padding for icon-only buttons */
+                font-size: 0.9rem; /* Restore original font size for text */
+            }
+            .flex.gap-3 {
+                flex-direction: column; /* Stack buttons vertically on small screens */
+                align-items: stretch;
+            }
+            .flex.gap-3 > a {
+                width: 100%; /* Make buttons full width */
+                text-align: center;
+            }
+            .px-5.py-2 {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.9rem;
+            }
+            .px-4.py-2 {
+                padding: 0.5rem 0.7rem;
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -408,13 +432,13 @@ $conexao->close();
             <p class="text-base text-gray-700">Bem-vindo(a), <span class="font-semibold text-primary"><?php echo htmlspecialchars($_SESSION['usuario']); ?></span>!</p>
             <div class="flex gap-3">
                 <a href="../index.php" class="btn-primary bg-blue-600 hover:bg-blue-700">
-                    <i class="fas fa-plus-circle"></i> Abrir Chamado
+                    <i class="fas fa-plus-circle"></i> <span class="button-text">Abrir Chamado</span>
                 </a>
                 <a href="criar_admin.php" class="btn-primary bg-green-600 hover:bg-green-700">
-                    <i class="fas fa-user-plus"></i> Criar Novo Admin
+                    <i class="fas fa-user-plus"></i> <span class="button-text">Criar Novo Admin</span>
                 </a>
                 <a href="logout.php" class="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-200 ease-in-out">
-                    <i class="fas fa-sign-out-alt"></i> Sair
+                    <i class="fas fa-sign-out-alt"></i> <span class="button-text">Sair</span>
                 </a>
             </div>
         </div>
@@ -454,7 +478,9 @@ $conexao->close();
                            class="mt-1 block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm">
                 </div>
                 <div class="md:col-span-4 flex justify-center mt-3">
-                    <button type="button" id="clearFiltersBtn" onclick="clearFilters()" class="ml-3 px-5 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-gray-400 transition duration-200 ease-in-out">Limpar Filtros</button>
+                    <button type="button" id="clearFiltersBtn" onclick="clearFilters()" class="ml-3 px-5 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-gray-400 transition duration-200 ease-in-out">
+                        <span class="button-text">Limpar Filtros</span>
+                    </button>
                 </div>
             </div>
         </div>
