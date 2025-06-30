@@ -12,6 +12,10 @@
 // ATUALIZADO: Título da tabela com cor primária e linhas da tabela com cores intercaladas mais escuras.
 // ATUALIZADO: Ajustado para o comportamento responsivo da tabela com scroll somente quando necessário e larguras fixas.
 // ATUALIZADO: Refinado o CSS para garantir que as colunas obedeçam às larguras definidas e o ellipsis funcione corretamente de forma mais abrangente.
+// ATUALIZADO: Adicionado detalhe visual para indicar tooltips em conteúdo truncado.
+// ATUALIZADO: Implementação de modal para detalhes do chamado com botão de info colorido.
+// ATUALIZADO: A regra de exibição do campo "Local" no modal é a mesma da tabela.
+// ATUALIZADO: Adicionado link para "Abrir Chamado".
 
 // Inclui o arquivo de conexão com o banco de dados e inicia a sessão.
 require_once '../conexao.php'; // Caminho ajustado para acessar conexao.php na pasta pai
@@ -127,7 +131,7 @@ $conexao->close();
             /* Removidas white-space, overflow, text-overflow, word-break daqui */
         }
         thead {
-            background-color: #7e0000;
+            background-color: var(--primary-color);
             color: white;
         }
         /* Larguras específicas para cada coluna em pixels fixos */
@@ -148,6 +152,15 @@ $conexao->close();
             word-break: break-all; /* Quebra palavras longas se necessário */
             display: block; /* Essencial para que overflow e text-overflow funcionem corretamente dentro da TD */
             max-width: 100%; /* Garante que a div não empurre a largura da TD */
+            transition: color 0.2s ease-in-out, text-shadow 0.2s ease-in-out, transform 0.2s ease-in-out; /* Transição suave para o efeito */
+        }
+
+        /* Estilo visual mais elegante para tooltips */
+        .truncate-content[title]:hover {
+            color: var(--primary-hover-color); /* Uma cor ligeiramente diferente no hover */
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.2); /* Uma sombra de texto sutil */
+            transform: scale(1.01); /* Um zoom sutil */
+            cursor: help; /* Muda o cursor para indicar ajuda */
         }
 
         /* Override para a coluna 'Ações' (última coluna) - permite quebrar linha e sem reticências */
@@ -245,10 +258,16 @@ $conexao->close();
             justify-content: center;
             line-height: 1; /* Garante que o ícone fique centralizado verticalmente */
         }
+        .info-btn { /* Estilo para o novo botão de info */
+            background-color: #10b981; /* Verde esmeralda */
+            color: white;
+        }
+        .info-btn:hover {
+            background-color: #059669;
+        }
         .edit-status-btn {
             background-color: #3b82f6; /* Azul */
             color: white;
-            margin-right: 0.5rem; /* Espaçamento entre os botões */
         }
         .edit-status-btn:hover {
             background-color: #2563eb;
@@ -297,6 +316,78 @@ $conexao->close();
         .hidden {
             display: none !important;
         }
+
+        /* Estilos do Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+            max-height: 80vh; /* Limita a altura do modal */
+            overflow-y: auto; /* Adiciona scroll se o conteúdo for muito grande */
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 0.1rem solid #7e0000;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #aaa;
+            transition: color 0.2s;
+        }
+
+        .modal-close-btn:hover {
+            color: #333;
+        }
+
+        .modal-body p {
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .modal-body p strong {
+            color: var(--primary-hover-color);
+            font-weight: 600;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -316,6 +407,9 @@ $conexao->close();
         <div class="flex justify-between items-center mb-5 flex-wrap gap-3">
             <p class="text-base text-gray-700">Bem-vindo(a), <span class="font-semibold text-primary"><?php echo htmlspecialchars($_SESSION['usuario']); ?></span>!</p>
             <div class="flex gap-3">
+                <a href="../index.php" class="btn-primary bg-blue-600 hover:bg-blue-700">
+                    <i class="fas fa-plus-circle"></i> Abrir Chamado
+                </a>
                 <a href="criar_admin.php" class="btn-primary bg-green-600 hover:bg-green-700">
                     <i class="fas fa-user-plus"></i> Criar Novo Admin
                 </a>
@@ -374,6 +468,25 @@ $conexao->close();
             </div>
     </div>
 
+    <div id="chamadoDetailModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Informações do Chamado</h2>
+                <button class="modal-close-btn" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p><strong>ID:</strong> <span id="modalId"></span></p>
+                <p><strong>Professor:</strong> <span id="modalProfessor"></span></p>
+                <p><strong>Local:</strong> <span id="modalLocalDisplay"></span></p>
+                <p><strong>Número do PC:</strong> <span id="modalNumeroComputador"></span></p>
+                <p><strong>Equipamentos Afetados:</strong> <span id="modalEquipamentos"></span></p>
+                <p><strong>Descrição:</strong> <span id="modalDescricao"></span></p>
+                <p><strong>Status:</strong> <span id="modalStatus"></span></p>
+                <p><strong>Data de Envio:</strong> <span id="modalDataEnvio"></span></p>
+            </div>
+        </div>
+    </div>
+
     <script>
         let searchTimeout;
         // Referências aos elementos do DOM
@@ -384,7 +497,19 @@ $conexao->close();
         const buscaNomeProfessorInput = document.getElementById('busca_nome_professor');
         const chamadosTableContainer = document.getElementById('chamadosTableContainer');
         const loadingIndicator = document.getElementById('loadingIndicator');
-        const clearFiltersBtn = document.getElementById('clearFiltersBtn'); // Novo: referência ao botão
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+
+        // Referências para o Modal
+        const chamadoDetailModal = document.getElementById('chamadoDetailModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalId = document.getElementById('modalId');
+        const modalProfessor = document.getElementById('modalProfessor');
+        const modalLocalDisplay = document.getElementById('modalLocalDisplay'); // Novo ID para o display consolidado
+        const modalNumeroComputador = document.getElementById('modalNumeroComputador');
+        const modalEquipamentos = document.getElementById('modalEquipamentos');
+        const modalDescricao = document.getElementById('modalDescricao');
+        const modalStatus = document.getElementById('modalStatus');
+        const modalDataEnvio = document.getElementById('modalDataEnvio');
 
         // Função para fechar todos os dropdowns de status abertos
         function closeAllStatusDropdowns() {
@@ -443,9 +568,6 @@ $conexao->close();
             document.querySelectorAll('.delete-btn').forEach(button => {
                 button.addEventListener('click', function() {
                     const chamadoId = this.dataset.id;
-                    // Em vez de window.confirm, você pode usar um modal customizado aqui.
-                    // Por simplicidade, vou usar um prompt básico para demonstração, 
-                    // mas em produção, substitua por um modal UI.
                     if (confirm('Tem certeza que deseja excluir este chamado?')) {
                         const form = document.createElement('form');
                         form.action = 'excluir_chamado.php';
@@ -461,6 +583,32 @@ $conexao->close();
                         document.body.appendChild(form);
                         form.submit();
                     }
+                });
+            });
+
+            // Adiciona listener para o botão de info
+            document.querySelectorAll('.info-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const data = this.dataset; // Acessa todos os data-atributos
+
+                    modalId.textContent = data.id;
+                    modalProfessor.textContent = data.professor;
+                    
+                    // Lógica para display do Local (agora consistente com a tabela)
+                    if (data.localDetalhe === 'N/A' && data.localTipo === 'Carrinho') {
+                        modalLocalDisplay.textContent = data.localTipo; // Exibe "Carrinho"
+                    } else {
+                        modalLocalDisplay.textContent = data.localDetalhe; // Exibe o detalhe do local
+                    }
+                    
+                    modalNumeroComputador.textContent = data.numeroComputador;
+                    modalEquipamentos.textContent = data.equipamentos.replace(/,/g, ', '); // Formata equipamentos
+                    modalDescricao.textContent = data.descricao;
+                    modalStatus.textContent = data.status;
+                    modalDataEnvio.textContent = data.dataEnvio;
+
+                    chamadoDetailModal.classList.remove('hidden'); // Mostra o modal
+                    closeAllStatusDropdowns(); // Fecha qualquer dropdown de status aberto
                 });
             });
 
@@ -530,7 +678,7 @@ $conexao->close();
                 }
                 localDetalheFilterContainer.style.display = 'block';
             } else if (tipoSelecionado === 'Sala') {
-                localDetalheContainer.style.display = 'block'; // Certifica que o container esteja visível para Salas
+                localDetalheFilterContainer.style.display = 'block'; // Certifica que o container esteja visível para Salas
                 for (let i = 1; i <= 7; i++) {
                     options.push(`Sala ${i}`);
                 }
@@ -587,6 +735,17 @@ $conexao->close();
             }
         }
 
+        // Event Listeners para o Modal
+        closeModalBtn.addEventListener('click', () => {
+            chamadoDetailModal.classList.add('hidden');
+        });
+
+        chamadoDetailModal.addEventListener('click', (event) => {
+            if (event.target === chamadoDetailModal) {
+                chamadoDetailModal.classList.add('hidden');
+            }
+        });
+
         // Adiciona um listener para quando o DOM estiver completamente carregado
         document.addEventListener('DOMContentLoaded', function() {
             // Re-seleciona os valores dos filtros com base nos parâmetros da URL (se houver)
@@ -605,8 +764,8 @@ $conexao->close();
 
             // Carrega os chamados com os filtros iniciais e atualiza a visibilidade do botão
             fetchAndDisplayChamados();
-            // A chamada a toggleClearFiltersButton() já está em fetchAndDisplayChamados()
         });
     </script>
 </body>
+
 </html>

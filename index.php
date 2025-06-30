@@ -111,7 +111,7 @@ if (isset($_SESSION['mensagem'])) {
             border: none;
             height: 2px; /* Espessura da linha */
             background: linear-gradient(to right, transparent, var(--primary-color), transparent); /* Gradiente para efeito minimalista */
-            margin: 2rem auto; /* Margem superior e inferior, centraliza */
+            margin: 1rem auto; /* Margem superior e inferior, centraliza */
             width: 80%; /* Largura da linha */
             border-radius: 1px; /* Cantos arredondados para a linha */
         }

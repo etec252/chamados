@@ -6,6 +6,8 @@
 // ATUALIZADO: Código JavaScript para manipulação de eventos movido para dashboard.php.
 // ATUALIZADO: Removido 'min-w-full' e 'overflow-hidden' da tag <table> para permitir rolagem horizontal e fixar larguras.
 // ATUALIZADO: Data de envio formatada para o padrão brasileiro (DD/MM/AAAA HH:MM).
+// ATUALIZADO: Adicionado tooltips para conteúdo truncado nas células da tabela.
+// ATUALIZADO: Adicionado botão de 'info' para abrir modal com detalhes.
 
 // Inclui o arquivo de conexão com o banco de dados.
 require_once '../conexao.php'; // Caminho ajustado para acessar conexao.php na pasta pai
@@ -102,22 +104,34 @@ if (!empty($chamados)): ?>
                 $data_envio_formatada = (new DateTime($chamado['data_envio']))->format('d/m/Y H:i');
             ?>
             <tr>
-                <td><div class="truncate-content"><?php echo htmlspecialchars($chamado['id']); ?></div></td>
-                <td><div class="truncate-content"><?php echo htmlspecialchars($chamado['nome_professor']); ?></div></td>
-                <td><div class="truncate-content"><?php echo $display_local_detalhe; ?></div></td>
-                <td><div class="truncate-content"><?php echo htmlspecialchars($chamado['numero_computador']); ?></div></td>
-                <td><div class="truncate-content"><?php echo $display_equipamentos; ?></div></td>
-                <td><div class="truncate-content"><?php echo htmlspecialchars($chamado['descricao']); ?></div></td>
+                <td><div class="truncate-content" title="<?php echo htmlspecialchars($chamado['id']); ?>"><?php echo htmlspecialchars($chamado['id']); ?></div></td>
+                <td><div class="truncate-content" title="<?php echo htmlspecialchars($chamado['nome_professor']); ?>"><?php echo htmlspecialchars($chamado['nome_professor']); ?></div></td>
+                <td><div class="truncate-content" title="<?php echo $display_local_detalhe; ?>"><?php echo $display_local_detalhe; ?></div></td>
+                <td><div class="truncate-content" title="<?php echo htmlspecialchars($chamado['numero_computador']); ?>"><?php echo htmlspecialchars($chamado['numero_computador']); ?></div></td>
+                <td><div class="truncate-content" title="<?php echo $display_equipamentos; ?>"><?php echo $display_equipamentos; ?></div></td>
+                <td><div class="truncate-content" title="<?php echo htmlspecialchars($chamado['descricao']); ?>"><?php echo htmlspecialchars($chamado['descricao']); ?></div></td>
                 <td>
-                    <div class="truncate-content">
+                    <div class="truncate-content" title="<?php echo htmlspecialchars($chamado['status']); ?>">
                         <span class="status-badge status-<?php echo str_replace(' ', '-', htmlspecialchars($chamado['status'])); ?>">
                             <?php echo htmlspecialchars($chamado['status']); ?>
                         </span>
                     </div>
                 </td>
-                <td><div class="truncate-content"><?php echo $data_envio_formatada; ?></div></td>
+                <td><div class="truncate-content" title="<?php echo $data_envio_formatada; ?>"><?php echo $data_envio_formatada; ?></div></td>
                 <td class="text-center relative">
                     <div class="flex justify-center items-center gap-2">
+                        <button type="button" class="action-button info-btn"
+                                data-id="<?php echo htmlspecialchars($chamado['id']); ?>"
+                                data-professor="<?php echo htmlspecialchars($chamado['nome_professor']); ?>"
+                                data-local-tipo="<?php echo htmlspecialchars($chamado['local_tipo']); ?>"
+                                data-local-detalhe="<?php echo htmlspecialchars($chamado['local_detalhe']); ?>"
+                                data-numero-computador="<?php echo htmlspecialchars($chamado['numero_computador']); ?>"
+                                data-equipamentos="<?php echo htmlspecialchars($chamado['equipamentos_afetados']); ?>"
+                                data-descricao="<?php echo htmlspecialchars($chamado['descricao']); ?>"
+                                data-status="<?php echo htmlspecialchars($chamado['status']); ?>"
+                                data-data-envio="<?php echo $data_envio_formatada; ?>">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
                         <button type="button" class="action-button edit-status-btn" data-id="<?php echo htmlspecialchars($chamado['id']); ?>">
                             <i class="fas fa-edit"></i>
                         </button>
