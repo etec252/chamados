@@ -131,14 +131,14 @@ $conexao->close();
             color: white;
         }
         /* Larguras específicas para cada coluna em pixels fixos */
-        th:nth-child(1), td:nth-child(1) { width: 40px; } /* ID */
-        th:nth-child(2), td:nth-child(2) { width: 120px; } /* Professor */
-        th:nth-child(3), td:nth-child(3) { width: 130px; } /* Local */
-        th:nth-child(4), td:nth-child(4) { width: 50px; } /* Nº Computador */
-        th:nth-child(5), td:nth-child(5) { width: 100px; } /* Equipamentos */
-        th:nth-child(6), td:nth-child(6) { width: 100px; } /* Descrição */
+        th:nth-child(1), td:nth-child(1) { width: 30px; } /* ID */
+        th:nth-child(2), td:nth-child(2) { width: 100px; } /* Professor */
+        th:nth-child(3), td:nth-child(3) { width: 100px; } /* Local */
+        th:nth-child(4), td:nth-child(4) { width: 45px; } /* Nº Computador */
+        th:nth-child(5), td:nth-child(5) { width: 110px; } /* Equipamentos */
+        th:nth-child(6), td:nth-child(6) { width: 110px; } /* Descrição */
         th:nth-child(7), td:nth-child(7) { width: 100px; } /* Status */
-        th:nth-child(8), td:nth-child(8) { width: 150px; } /* Envio */
+        th:nth-child(8), td:nth-child(8) { width: 120px; } /* Envio */
 
         /* Nova classe para o conteúdo dentro das células (DIV interna) */
         .truncate-content {
@@ -152,7 +152,7 @@ $conexao->close();
 
         /* Override para a coluna 'Ações' (última coluna) - permite quebrar linha e sem reticências */
         th:nth-child(9), td:nth-child(9) {
-            width: 130px; /* Ações */
+            width: 110px; /* Ações */
             white-space: normal; /* Permite quebra de linha */
             overflow: visible; /* Garante que os botões não sejam cortados */
             text-overflow: clip; /* Sem reticências */

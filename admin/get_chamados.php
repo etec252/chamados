@@ -77,68 +77,66 @@ $conexao->close();
 
 // Inicia a renderização do HTML da tabela (apenas o corpo da tabela)
 if (!empty($chamados)): ?>
-    <div class="overflow-x-auto">
-        <table class="bg-white">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Professor</th>
-                    <th>Local</th>
-                    <th>Nº Computador</th>
-                    <th>Equipamentos</th>
-                    <th>Descrição</th>
-                    <th>Status</th>
-                    <th>Envio</th>
-                    <th class="text-center">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($chamados as $chamado):
-                    // Determina o valor a ser exibido para 'Detalhe Local'
-                    // Se o local_detalhe for 'N/A' E o local_tipo for 'Carrinho', exibe 'Carrinho'
-                    // Caso contrário, exibe o local_detalhe original.
-                    $display_local_detalhe = ($chamado['local_detalhe'] === 'N/A' && $chamado['local_tipo'] === 'Carrinho') ?
-                                              htmlspecialchars($chamado['local_tipo']) :
-                                              htmlspecialchars($chamado['local_detalhe']);
-                    
-                    // Adiciona um espaço após a vírgula para os equipamentos afetados
-                    $display_equipamentos = str_replace(',', ', ', htmlspecialchars($chamado['equipamentos_afetados']));
-
-                    // Formata a data de envio para o padrão brasileiro DD/MM/AAAA HH:MM
-                    $data_envio_formatada = (new DateTime($chamado['data_envio']))->format('d/m/Y H:i');
-                ?>
-                <tr>
-                    <td><?php echo htmlspecialchars($chamado['id']); ?></td>
-                    <td><?php echo htmlspecialchars($chamado['nome_professor']); ?></td>
-                    <td><?php echo $display_local_detalhe; ?></td>
-                    <td><?php echo htmlspecialchars($chamado['numero_computador']); ?></td>
-                    <td><?php echo $display_equipamentos; ?></td> <td><?php echo htmlspecialchars($chamado['descricao']); ?></td>
-                    <td>
+<div class="overflow-x-auto">
+    <table class="bg-white" style="table-layout: fixed; width: 100%;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Professor</th>
+                <th>Local</th>
+                <th>Nº PC</th>
+                <th>Equipamentos</th>
+                <th>Descrição</th>
+                <th>Status</th>
+                <th>Abretura</th>
+                <th class="text-center">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($chamados as $chamado):
+                $display_local_detalhe = ($chamado['local_detalhe'] === 'N/A' && $chamado['local_tipo'] === 'Carrinho') ?
+                                          htmlspecialchars($chamado['local_tipo']) :
+                                          htmlspecialchars($chamado['local_detalhe']);
+                
+                $display_equipamentos = str_replace(',', ', ', htmlspecialchars($chamado['equipamentos_afetados']));
+                $data_envio_formatada = (new DateTime($chamado['data_envio']))->format('d/m/Y H:i');
+            ?>
+            <tr>
+                <td><div class="truncate-content"><?php echo htmlspecialchars($chamado['id']); ?></div></td>
+                <td><div class="truncate-content"><?php echo htmlspecialchars($chamado['nome_professor']); ?></div></td>
+                <td><div class="truncate-content"><?php echo $display_local_detalhe; ?></div></td>
+                <td><div class="truncate-content"><?php echo htmlspecialchars($chamado['numero_computador']); ?></div></td>
+                <td><div class="truncate-content"><?php echo $display_equipamentos; ?></div></td>
+                <td><div class="truncate-content"><?php echo htmlspecialchars($chamado['descricao']); ?></div></td>
+                <td>
+                    <div class="truncate-content">
                         <span class="status-badge status-<?php echo str_replace(' ', '-', htmlspecialchars($chamado['status'])); ?>">
                             <?php echo htmlspecialchars($chamado['status']); ?>
                         </span>
-                    </td>
-                    <td><?php echo $data_envio_formatada; ?></td> <td class="text-center relative"> <div class="flex justify-center items-center gap-2">
-                            <button type="button" class="action-button edit-status-btn" data-id="<?php echo htmlspecialchars($chamado['id']); ?>">
-                                <i class="fas fa-edit"></i>
-                            </button>
+                    </div>
+                </td>
+                <td><div class="truncate-content"><?php echo $data_envio_formatada; ?></div></td>
+                <td class="text-center relative">
+                    <div class="flex justify-center items-center gap-2">
+                        <button type="button" class="action-button edit-status-btn" data-id="<?php echo htmlspecialchars($chamado['id']); ?>">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="action-button delete-btn" data-id="<?php echo htmlspecialchars($chamado['id']); ?>">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                    <div id="status-dropdown-<?php echo htmlspecialchars($chamado['id']); ?>" class="status-dropdown hidden">
+                        <span class="status-option Pendente" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Pendente">Pendente</span>
+                        <span class="status-option Em-andamento" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Em andamento">Em andamento</span>
+                        <span class="status-option Resolvido" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Resolvido">Resolvido</span>
+                    </div>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
 
-                            <button type="button" class="action-button delete-btn" data-id="<?php echo htmlspecialchars($chamado['id']); ?>">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </div>
-
-                        <div id="status-dropdown-<?php echo htmlspecialchars($chamado['id']); ?>" class="status-dropdown hidden">
-                            <span class="status-option Pendente" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Pendente">Pendente</span>
-                            <span class="status-option Em-andamento" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Em andamento">Em andamento</span>
-                            <span class="status-option Resolvido" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Resolvido">Resolvido</span>
-                        </div>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
 <?php else: ?>
     <p class="text-center text-gray-600 text-lg mt-10">Nenhum chamado encontrado com os filtros aplicados.</p>
 <?php endif; ?>
