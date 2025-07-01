@@ -16,6 +16,7 @@
 // ATUALIZADO: Implementação de modal para detalhes do chamado com botão de info colorido.
 // ATUALIZADO: A regra de exibição do campo "Local" no modal é a mesma da tabela.
 // ATUALIZADO: Adicionado link para "Abrir Chamado".
+// ATUALIZADO: Adicionada paginação de 10 em 10 chamados.
 
 // Inclui o arquivo de conexão com o banco de dados e inicia a sessão.
 require_once '../conexao.php'; // Caminho ajustado para acessar conexao.php na pasta pai
@@ -412,6 +413,51 @@ $conexao->close();
                 font-size: 0.8rem;
             }
         }
+        /* Estilos de Paginação */
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        .pagination-button {
+            padding: 8px 15px;
+            border: 1px solid var(--primary-color);
+            border-radius: 5px;
+            background-color: white;
+            color: var(--primary-color);
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            font-weight: 500;
+        }
+
+        .pagination-button:hover:not(:disabled) {
+            background-color: var(--primary-hover-color);
+            color: white;
+        }
+
+        .pagination-button:disabled {
+            border-color: #ccc;
+            color: #ccc;
+            cursor: not-allowed;
+            background-color: #f0f0f0;
+        }
+
+        .pagination-page-number {
+            padding: 8px 12px;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .pagination-page-number.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
     </style>
 </head>
 <body>
@@ -447,7 +493,7 @@ $conexao->close();
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
                     <label for="status" class="block text-sm font-medium text-gray-700 mb-1 text-primary">Filtrar por Status:</label>
-                    <select id="status" name="status" onchange="fetchAndDisplayChamados()"
+                    <select id="status" name="status" onchange="currentPage = 1; fetchAndDisplayChamados()"
                             class="mt-1 block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm">
                         <option value="">Todos</option>
                         <option value="Pendente">Pendente</option>
@@ -457,7 +503,7 @@ $conexao->close();
                 </div>
                 <div>
                     <label for="local_tipo" class="block text-sm font-medium text-gray-700 mb-1 text-primary">Filtrar por local:</label>
-                    <select id="local_tipo" name="local_tipo" onchange="updateLocalDetalheFilterOptions(); fetchAndDisplayChamados();"
+                    <select id="local_tipo" name="local_tipo" onchange="updateLocalDetalheFilterOptions(); currentPage = 1; fetchAndDisplayChamados();"
                             class="mt-1 block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm">
                         <option value="">Todos</option>
                         <option value="Laboratório">Laboratório</option>
@@ -468,7 +514,7 @@ $conexao->close();
                 </div>
                 <div id="local_detalhe_filter_container">
                     <label for="local_detalhe" class="block text-sm font-medium text-gray-700 mb-1 text-primary">Especifique:</label>
-                    <select id="local_detalhe" name="local_detalhe" onchange="fetchAndDisplayChamados()"
+                    <select id="local_detalhe" name="local_detalhe" onchange="currentPage = 1; fetchAndDisplayChamados()"
                             class="mt-1 block w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm">
                         </select>
                 </div>
@@ -491,7 +537,14 @@ $conexao->close();
         </div>
 
         <div id="chamadosTableContainer" class="overflow-x-auto">
-            </div>
+        </div>
+
+        <div id="paginationControls" class="pagination-controls hidden">
+            <button id="prevPageBtn" class="pagination-button" disabled><i class="fas fa-chevron-left"></i> Anterior</button>
+            <div id="pageNumbers" class="flex gap-2">
+                </div>
+            <button id="nextPageBtn" class="pagination-button" disabled>Próximo <i class="fas fa-chevron-right"></i></button>
+        </div>
     </div>
 
     <div id="chamadoDetailModal" class="modal-overlay hidden">
@@ -515,6 +568,9 @@ $conexao->close();
 
     <script>
         let searchTimeout;
+        let currentPage = 1; // Página atual
+        const recordsPerPage = 10; // Registros por página
+
         // Referências aos elementos do DOM
         const statusSelect = document.getElementById('status');
         const localTipoSelect = document.getElementById('local_tipo');
@@ -524,6 +580,11 @@ $conexao->close();
         const chamadosTableContainer = document.getElementById('chamadosTableContainer');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        const paginationControls = document.getElementById('paginationControls');
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+        const pageNumbersContainer = document.getElementById('pageNumbers');
+
 
         // Referências para o Modal
         const chamadoDetailModal = document.getElementById('chamadoDetailModal');
@@ -651,6 +712,7 @@ $conexao->close();
         async function fetchAndDisplayChamados() {
             loadingIndicator.style.display = 'flex'; // Mostra o indicador de carregamento como flex
             chamadosTableContainer.innerHTML = ''; // Limpa o conteúdo anterior
+            paginationControls.classList.add('hidden'); // Esconde a paginação durante o carregamento
 
             const params = new URLSearchParams();
             if (statusSelect.value) params.append('status', statusSelect.value);
@@ -665,6 +727,10 @@ $conexao->close();
 
             if (buscaNomeProfessorInput.value) params.append('busca_nome_professor', buscaNomeProfessorInput.value);
 
+            // Adiciona parâmetros de paginação
+            params.append('page', currentPage);
+            params.append('limit', recordsPerPage);
+
             try {
                 const response = await fetch(`get_chamados.php?${params.toString()}`);
                 if (!response.ok) {
@@ -673,6 +739,13 @@ $conexao->close();
                 const html = await response.text();
                 chamadosTableContainer.innerHTML = html;
                 attachActionListeners(); // Chama a função para anexar os listeners após a tabela ser carregada
+
+                // Obtém o total de registros do input escondido
+                const totalRecordsInput = document.getElementById('totalRecords');
+                const totalRecords = totalRecordsInput ? parseInt(totalRecordsInput.value) : 0;
+                
+                updatePaginationControls(totalRecords); // Atualiza os controles de paginação
+                
             }
             catch (error) {
                 console.error("Erro ao buscar chamados:", error);
@@ -688,6 +761,7 @@ $conexao->close();
         function debounceFetch() {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
+                currentPage = 1; // Reseta para a primeira página ao buscar
                 fetchAndDisplayChamados();
             }, 300); // Atraso de 300ms para evitar muitas requisições
         }
@@ -742,6 +816,7 @@ $conexao->close();
             // Atualiza o display do container de detalhe local após limpar
             updateLocalDetalheFilterOptions(); 
             buscaNomeProfessorInput.value = '';
+            currentPage = 1; // Reseta para a primeira página
             // Recarrega os chamados sem filtros
             fetchAndDisplayChamados(); 
         }
@@ -761,6 +836,50 @@ $conexao->close();
             }
         }
 
+        // Funções de Paginação
+        function updatePaginationControls(totalRecords) {
+            const totalPages = Math.ceil(totalRecords / recordsPerPage);
+            pageNumbersContainer.innerHTML = ''; // Limpa os números de página existentes
+
+            if (totalPages > 1) {
+                paginationControls.classList.remove('hidden'); // Mostra os controles
+                prevPageBtn.disabled = (currentPage === 1);
+                nextPageBtn.disabled = (currentPage === totalPages);
+
+                for (let i = 1; i <= totalPages; i++) {
+                    const pageSpan = document.createElement('span');
+                    pageSpan.classList.add('pagination-page-number');
+                    if (i === currentPage) {
+                        pageSpan.classList.add('active');
+                    }
+                    pageSpan.textContent = i;
+                    pageSpan.addEventListener('click', () => {
+                        currentPage = i;
+                        fetchAndDisplayChamados();
+                    });
+                    pageNumbersContainer.appendChild(pageSpan);
+                }
+            } else {
+                paginationControls.classList.add('hidden'); // Esconde se houver apenas uma página
+            }
+        }
+
+        prevPageBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                fetchAndDisplayChamados();
+            }
+        });
+
+        nextPageBtn.addEventListener('click', () => {
+            const totalRecords = parseInt(document.getElementById('totalRecords').value);
+            const totalPages = Math.ceil(totalRecords / recordsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                fetchAndDisplayChamados();
+            }
+        });
+
         // Event Listeners para o Modal
         closeModalBtn.addEventListener('click', () => {
             chamadoDetailModal.classList.add('hidden');
@@ -779,10 +898,12 @@ $conexao->close();
             const initialStatus = urlParams.get('status') || '';
             const initialLocalTipo = urlParams.get('local_tipo') || '';
             const initialBuscaNome = urlParams.get('busca_nome_professor') || '';
+            const initialPage = urlParams.get('page') ? parseInt(urlParams.get('page')) : 1;
 
             if (initialStatus) statusSelect.value = initialStatus;
             if (initialLocalTipo) localTipoSelect.value = initialLocalTipo;
             if (initialBuscaNome) buscaNomeProfessorInput.value = initialBuscaNome;
+            currentPage = initialPage;
 
             // Chamar updateLocalDetalheFilterOptions para garantir que o filtro de detalhe seja populado corretamente
             // e que o valor inicial seja selecionado.
