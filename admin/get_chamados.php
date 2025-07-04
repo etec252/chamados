@@ -8,6 +8,7 @@
 // ATUALIZADO: Data de envio formatada para o padrão brasileiro (DD/MM/AAAA HH:MM).
 // ATUALIZADO: Adicionado tooltips para conteúdo truncado nas células da tabela.
 // ATUALIZADO: Adicionado botão de 'info' para abrir modal com detalhes.
+// ATUALIZADO: Implementado paginação de 10 em 10 chamados.
 
 // Inclui o arquivo de conexão com o banco de dados.
 require_once '../conexao.php'; // Caminho ajustado para acessar conexao.php na pasta pai
@@ -18,67 +19,113 @@ $filtro_local_tipo = isset($_GET['local_tipo']) ? $_GET['local_tipo'] : '';
 $filtro_local_detalhe = isset($_GET['local_detalhe']) ? $_GET['local_detalhe'] : '';
 $busca_nome_professor = isset($_GET['busca_nome_professor']) ? trim($_GET['busca_nome_professor']) : '';
 
-// Constrói a query SQL base
-$sql = "SELECT id, nome_professor, local_tipo, local_detalhe, numero_computador, equipamentos_afetados, descricao, status, data_envio FROM chamados WHERE 1=1";
-$params = [];
-$types = "";
+// Parâmetros de paginação
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+$limit = isset($_GET['limit']) ? intval($_GET['limit']) : 10;
+$offset = ($page - 1) * $limit;
 
-// Adiciona filtros à query
+// Constrói a query SQL base para a contagem total (sem LIMIT/OFFSET)
+$sql_count = "SELECT COUNT(*) FROM chamados WHERE 1=1";
+$params_count = [];
+$types_count = "";
+
+// Constrói a query SQL base para os dados paginados
+$sql_data = "SELECT id, nome_professor, local_tipo, local_detalhe, numero_computador, equipamentos_afetados, descricao, status, data_envio FROM chamados WHERE 1=1";
+$params_data = [];
+$types_data = "";
+
+// Adiciona filtros às queries
 if (!empty($filtro_status)) {
-    $sql .= " AND status = ?";
-    $params[] = $filtro_status;
-    $types .= "s";
+    $sql_count .= " AND status = ?";
+    $params_count[] = $filtro_status;
+    $types_count .= "s";
+
+    $sql_data .= " AND status = ?";
+    $params_data[] = $filtro_status;
+    $types_data .= "s";
 }
 if (!empty($filtro_local_tipo)) {
-    $sql .= " AND local_tipo = ?";
-    $params[] = $filtro_local_tipo;
-    $types .= "s";
+    $sql_count .= " AND local_tipo = ?";
+    $params_count[] = $filtro_local_tipo;
+    $types_count .= "s";
+
+    $sql_data .= " AND local_tipo = ?";
+    $params_data[] = $filtro_local_tipo;
+    $types_data .= "s";
 }
 // Adiciona filtro para detalhe do local, se não for vazio
 if (!empty($filtro_local_detalhe)) {
-    $sql .= " AND local_detalhe = ?";
-    $params[] = $filtro_local_detalhe;
-    $types .= "s";
+    $sql_count .= " AND local_detalhe = ?";
+    $params_count[] = $filtro_local_detalhe;
+    $types_count .= "s";
+
+    $sql_data .= " AND local_detalhe = ?";
+    $params_data[] = $filtro_local_detalhe;
+    $types_data .= "s";
 }
 if (!empty($busca_nome_professor)) {
-    $sql .= " AND nome_professor LIKE ?";
-    // Adiciona curingas para a busca por parte do nome
-    $params[] = "%" . $busca_nome_professor . "%";
-    $types .= "s";
+    $sql_count .= " AND nome_professor LIKE ?";
+    $params_count[] = "%" . $busca_nome_professor . "%";
+    $types_count .= "s";
+
+    $sql_data .= " AND nome_professor LIKE ?";
+    $params_data[] = "%" . $busca_nome_professor . "%";
+    $types_data .= "s";
 }
 
 // Opcional: Adicionar ORDER BY para ordenar os chamados
-$sql .= " ORDER BY data_envio DESC";
+$sql_data .= " ORDER BY data_envio DESC";
 
 
-// Prepara a declaração SQL
-if ($stmt = $conexao->prepare($sql)) {
+// --- Obter o total de registros antes da paginação ---
+$totalRecords = 0;
+if ($stmt_count = $conexao->prepare($sql_count)) {
+    if (!empty($params_count)) {
+        $stmt_count->bind_param($types_count, ...$params_count);
+    }
+    if ($stmt_count->execute()) {
+        $stmt_count->bind_result($totalRecords);
+        $stmt_count->fetch();
+    }
+    $stmt_count->close();
+}
+
+// Adiciona LIMIT e OFFSET à query de dados
+$sql_data .= " LIMIT ? OFFSET ?";
+$params_data[] = $limit;
+$types_data .= "i";
+$params_data[] = $offset;
+$types_data .= "i";
+
+$chamados = []; // Inicializa $chamados como um array vazio
+// Prepara a declaração SQL para os dados paginados
+if ($stmt_data = $conexao->prepare($sql_data)) {
     // Vincula os parâmetros, se houver
-    if (!empty($params)) {
-        $stmt->bind_param($types, ...$params);
+    if (!empty($params_data)) {
+        $stmt_data->bind_param($types_data, ...$params_data);
     }
 
     // Executa a declaração
-    if ($stmt->execute()) {
-        $result = $stmt->get_result();
+    if ($stmt_data->execute()) {
+        $result = $stmt_data->get_result();
         $chamados = $result->fetch_all(MYSQLI_ASSOC);
     } else {
         // Em caso de erro na query, retorne uma mensagem de erro HTML
-        echo '<p class="text-center text-red-500 text-lg mt-10">Erro ao consultar o banco de dados: ' . htmlspecialchars($stmt->error) . '</p>';
-        $chamados = []; // Garante que $chamados seja um array vazio
+        echo '<p class="text-center text-red-500 text-lg mt-10">Erro ao consultar o banco de dados: ' . htmlspecialchars($stmt_data->error) . '</p>';
     }
-    $stmt->close();
+    $stmt_data->close();
 } else {
     // Em caso de erro na preparação, retorne uma mensagem de erro HTML
     echo '<p class="text-center text-red-500 text-lg mt-10">Erro na preparação da consulta: ' . htmlspecialchars($conexao->error) . '</p>';
-    $chamados = []; // Garante que $chamados seja um array vazio
 }
 
 // Fecha a conexão com o banco de dados.
 $conexao->close();
 
 // Inicia a renderização do HTML da tabela (apenas o corpo da tabela)
-if (!empty($chamados)): ?>
+?>
+<input type="hidden" id="totalRecords" value="<?php echo $totalRecords; ?>">
+<?php if (!empty($chamados)): ?>
 <div class="overflow-x-auto">
     <table class="bg-white" style="table-layout: fixed; width: 100%;">
         <thead>
