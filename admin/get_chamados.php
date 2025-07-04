@@ -8,6 +8,8 @@
 // ATUALIZADO: Data de envio formatada para o padrão brasileiro (DD/MM/AAAA HH:MM).
 // ATUALIZADO: Adicionado tooltips para conteúdo truncado nas células da tabela.
 // ATUALIZADO: Adicionado botão de 'info' para abrir modal com detalhes.
+// ATUALIZADO: Implementação da lógica de paginação (LIMIT e OFFSET).
+// CORRIGIDO: Aviso "Argument #2 must be passed by reference" para mysqli_stmt::bind_param.
 
 // Inclui o arquivo de conexão com o banco de dados.
 require_once '../conexao.php'; // Caminho ajustado para acessar conexao.php na pasta pai
@@ -18,12 +20,63 @@ $filtro_local_tipo = isset($_GET['local_tipo']) ? $_GET['local_tipo'] : '';
 $filtro_local_detalhe = isset($_GET['local_detalhe']) ? $_GET['local_detalhe'] : '';
 $busca_nome_professor = isset($_GET['busca_nome_professor']) ? trim($_GET['busca_nome_professor']) : '';
 
-// Constrói a query SQL base
+// Parâmetros de Paginação
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+$limit = isset($_GET['limit']) ? intval($_GET['limit']) : 10; // Default de 10 registros por página
+$offset = ($page - 1) * $limit;
+
+// Constrói a query SQL base para CONTAR o total de registros (sem LIMIT e OFFSET)
+$sql_count = "SELECT COUNT(*) AS total FROM chamados WHERE 1=1";
+$params_count = [];
+$types_count = "";
+
+// Adiciona filtros à query de contagem
+if (!empty($filtro_status)) {
+    $sql_count .= " AND status = ?";
+    $params_count[] = $filtro_status;
+    $types_count .= "s";
+}
+if (!empty($filtro_local_tipo)) {
+    $sql_count .= " AND local_tipo = ?";
+    $params_count[] = $filtro_local_tipo;
+    $types_count .= "s";
+}
+if (!empty($filtro_local_detalhe)) {
+    $sql_count .= " AND local_detalhe = ?";
+    $params_count[] = $filtro_local_detalhe;
+    $types_count .= "s";
+}
+if (!empty($busca_nome_professor)) {
+    $sql_count .= " AND nome_professor LIKE ?";
+    $params_count[] = "%" . $busca_nome_professor . "%";
+    $types_count .= "s";
+}
+
+$total_records = 0;
+if ($stmt_count = $conexao->prepare($sql_count)) {
+    if (!empty($params_count)) {
+        // Correção para bind_param: passar referências
+        $bind_args_count = [];
+        $bind_args_count[] = $types_count;
+        foreach ($params_count as $key => $value) {
+            $bind_args_count[] = &$params_count[$key]; // Passar por referência
+        }
+        call_user_func_array([$stmt_count, 'bind_param'], $bind_args_count);
+    }
+    $stmt_count->execute();
+    $result_count = $stmt_count->get_result();
+    $row_count = $result_count->fetch_assoc();
+    $total_records = $row_count['total'];
+    $stmt_count->close();
+}
+
+
+// Constrói a query SQL base para buscar os chamados (com LIMIT e OFFSET)
 $sql = "SELECT id, nome_professor, local_tipo, local_detalhe, numero_computador, equipamentos_afetados, descricao, status, data_envio FROM chamados WHERE 1=1";
 $params = [];
 $types = "";
 
-// Adiciona filtros à query
+// Adiciona filtros à query principal
 if (!empty($filtro_status)) {
     $sql .= " AND status = ?";
     $params[] = $filtro_status;
@@ -34,7 +87,6 @@ if (!empty($filtro_local_tipo)) {
     $params[] = $filtro_local_tipo;
     $types .= "s";
 }
-// Adiciona filtro para detalhe do local, se não for vazio
 if (!empty($filtro_local_detalhe)) {
     $sql .= " AND local_detalhe = ?";
     $params[] = $filtro_local_detalhe;
@@ -42,20 +94,27 @@ if (!empty($filtro_local_detalhe)) {
 }
 if (!empty($busca_nome_professor)) {
     $sql .= " AND nome_professor LIKE ?";
-    // Adiciona curingas para a busca por parte do nome
     $params[] = "%" . $busca_nome_professor . "%";
     $types .= "s";
 }
 
-// Opcional: Adicionar ORDER BY para ordenar os chamados
-$sql .= " ORDER BY data_envio DESC";
-
+// Adiciona ORDER BY e LIMIT/OFFSET
+$sql .= " ORDER BY data_envio DESC LIMIT ? OFFSET ?";
+$params[] = $limit;
+$types .= "ii"; // 'i' para inteiro para LIMIT e OFFSET
+$params[] = $offset;
 
 // Prepara a declaração SQL
 if ($stmt = $conexao->prepare($sql)) {
-    // Vincula os parâmetros, se houver
+    // Vincula os parâmetros
     if (!empty($params)) {
-        $stmt->bind_param($types, ...$params);
+        // Correção para bind_param: passar referências
+        $bind_args = [];
+        $bind_args[] = $types;
+        foreach ($params as $key => $value) {
+            $bind_args[] = &$params[$key]; // Passar por referência
+        }
+        call_user_func_array([$stmt, 'bind_param'], $bind_args);
     }
 
     // Executa a declaração
@@ -63,21 +122,20 @@ if ($stmt = $conexao->prepare($sql)) {
         $result = $stmt->get_result();
         $chamados = $result->fetch_all(MYSQLI_ASSOC);
     } else {
-        // Em caso de erro na query, retorne uma mensagem de erro HTML
         echo '<p class="text-center text-red-500 text-lg mt-10">Erro ao consultar o banco de dados: ' . htmlspecialchars($stmt->error) . '</p>';
-        $chamados = []; // Garante que $chamados seja um array vazio
+        $chamados = [];
     }
     $stmt->close();
 } else {
-    // Em caso de erro na preparação, retorne uma mensagem de erro HTML
     echo '<p class="text-center text-red-500 text-lg mt-10">Erro na preparação da consulta: ' . htmlspecialchars($conexao->error) . '</p>';
-    $chamados = []; // Garante que $chamados seja um array vazio
+    $chamados = [];
 }
 
-// Fecha a conexão com o banco de dados.
 $conexao->close();
 
-// Inicia a renderização do HTML da tabela (apenas o corpo da tabela)
+// Adiciona um campo hidden com o total de registros para o JavaScript
+echo '<input type="hidden" id="totalRecords" value="' . $total_records . '">';
+
 if (!empty($chamados)): ?>
 <div class="overflow-x-auto">
     <table class="bg-white" style="table-layout: fixed; width: 100%;">

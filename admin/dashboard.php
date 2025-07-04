@@ -17,6 +17,7 @@
 // ATUALIZADO: A regra de exibição do campo "Local" no modal é a mesma da tabela.
 // ATUALIZADO: Adicionado link para "Abrir Chamado".
 // ATUALIZADO: Adicionada paginação de 10 em 10 chamados.
+// NOVO: Adicionada funcionalidade de ordenação de colunas clicáveis na tabela.
 
 // Inclui o arquivo de conexão com o banco de dados e inicia a sessão.
 require_once '../conexao.php'; // Caminho ajustado para acessar conexao.php na pasta pai
@@ -451,12 +452,45 @@ $conexao->close();
             border-radius: 5px;
             color: var(--primary-color);
             font-weight: 600;
+            transition: background-color 0.2s, color 0.2s; /* Adicionado para a animação de hover */
+        }
+
+        .pagination-page-number:hover:not(.active) {
+            background-color: #f0f0f0; /* Um cinza claro para o fundo ao passar o mouse */
+            color: var(--primary-hover-color); /* Altera a cor do texto para o hover da cor primária */
+            cursor: pointer; /* Garante o cursor de mãozinha */
         }
 
         .pagination-page-number.active {
             background-color: var(--primary-color);
             color: white;
             border-color: var(--primary-color);
+        }
+
+        /* NOVOS ESTILOS PARA ORDENAÇÃO */
+        .sortable {
+            cursor: pointer;
+            position: relative;
+            padding-right: 25px; /* Espaço para o ícone de ordenação */
+            user-select: none; /* Previne seleção de texto ao clicar */
+        }
+        .sort-icon {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7em; /* Tamanho menor para o ícone */
+            color: rgba(255, 255, 255, 0.7); /* Cor padrão para ícones inativos */
+            transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
+        }
+        .sort-icon.active {
+            color: white; /* Cor do ícone quando a coluna está ativa */
+        }
+        .sort-icon.asc {
+            transform: translateY(-50%) rotate(0deg); /* Seta para cima para ASC */
+        }
+        .sort-icon.desc {
+            transform: translateY(-50%) rotate(180deg); /* Seta para baixo para DESC */
         }
     </style>
 </head>
@@ -537,6 +571,19 @@ $conexao->close();
         </div>
 
         <div id="chamadosTableContainer" class="overflow-x-auto">
+            <table class="bg-white" style="table-layout: fixed; width: 100%;">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort-by="id">ID <i class="fas fa-sort sort-icon" data-column="id"></i></th>
+                        <th class="sortable" data-sort-by="nome_professor">Professor <i class="fas fa-sort sort-icon" data-column="nome_professor"></i></th>
+                        <th>Local</th> <th>Nº PC</th> <th>Equipamentos</th> <th>Descrição</th> <th class="sortable" data-sort-by="status">Status <i class="fas fa-sort sort-icon" data-column="status"></i></th>
+                        <th class="sortable" data-sort-by="data_envio">Abertura <i class="fas fa-sort sort-icon" data-column="data_envio"></i></th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
         </div>
 
         <div id="paginationControls" class="pagination-controls hidden">
@@ -570,6 +617,10 @@ $conexao->close();
         let searchTimeout;
         let currentPage = 1; // Página atual
         const recordsPerPage = 10; // Registros por página
+
+        // Variáveis de ordenação
+        let currentSortColumn = 'data_envio'; // Coluna de ordenação padrão
+        let currentSortOrder = 'DESC'; // Ordem de ordenação padrão (descendente)
 
         // Referências aos elementos do DOM
         const statusSelect = document.getElementById('status');
@@ -708,6 +759,50 @@ $conexao->close();
         }
 
 
+        // NOVO: Função para anexar listeners de ordenação aos cabeçalhos da tabela
+        function attachSortListeners() {
+            document.querySelectorAll('th.sortable').forEach(header => {
+                header.removeEventListener('click', handleSortClick); // Remove para evitar duplicação
+                header.addEventListener('click', handleSortClick);
+            });
+        }
+
+        // NOVO: Função de callback para o clique nos cabeçalhos
+        function handleSortClick() {
+            const column = this.dataset.sortBy; // Pega o nome da coluna do atributo data-sort-by
+
+            if (currentSortColumn === column) {
+                // Se for a mesma coluna, inverte a ordem
+                currentSortOrder = (currentSortOrder === 'ASC') ? 'DESC' : 'ASC';
+            } else {
+                // Se for uma nova coluna, define como padrão ASC e a nova coluna
+                currentSortColumn = column;
+                currentSortOrder = 'ASC';
+            }
+            currentPage = 1; // Sempre reseta para a primeira página ao ordenar
+            fetchAndDisplayChamados(); // Recarrega os chamados com a nova ordenação
+        }
+
+        // NOVO: Função para atualizar os ícones de ordenação na UI
+        function updateSortIcons() {
+            document.querySelectorAll('.sort-icon').forEach(icon => {
+                icon.classList.remove('fa-sort-up', 'fa-sort-down', 'active');
+                icon.classList.add('fa-sort'); // Ícone padrão para não-ordenado
+            });
+
+            const activeIcon = document.querySelector(`.sort-icon[data-column="${currentSortColumn}"]`);
+            if (activeIcon) {
+                activeIcon.classList.remove('fa-sort'); // Remove o ícone padrão
+                activeIcon.classList.add('active'); // Ativa a cor do ícone
+                if (currentSortOrder === 'ASC') {
+                    activeIcon.classList.add('fa-sort-up'); // Seta para cima
+                } else {
+                    activeIcon.classList.add('fa-sort-down'); // Seta para baixo
+                }
+            }
+        }
+
+
         // Função para buscar e exibir os chamados via AJAX
         async function fetchAndDisplayChamados() {
             loadingIndicator.style.display = 'flex'; // Mostra o indicador de carregamento como flex
@@ -727,9 +822,12 @@ $conexao->close();
 
             if (buscaNomeProfessorInput.value) params.append('busca_nome_professor', buscaNomeProfessorInput.value);
 
-            // Adiciona parâmetros de paginação
+            // Adiciona parâmetros de paginação e ordenação
             params.append('page', currentPage);
             params.append('limit', recordsPerPage);
+            params.append('sort_column', currentSortColumn); // NOVO: Adiciona a coluna de ordenação
+            params.append('sort_order', currentSortOrder); // NOVO: Adiciona a ordem de ordenação
+
 
             try {
                 const response = await fetch(`get_chamados.php?${params.toString()}`);
@@ -739,6 +837,8 @@ $conexao->close();
                 const html = await response.text();
                 chamadosTableContainer.innerHTML = html;
                 attachActionListeners(); // Chama a função para anexar os listeners após a tabela ser carregada
+                attachSortListeners(); // NOVO: Anexa listeners de ordenação
+                updateSortIcons(); // NOVO: Atualiza os ícones de ordenação
 
                 // Obtém o total de registros do input escondido
                 const totalRecordsInput = document.getElementById('totalRecords');
@@ -817,6 +917,8 @@ $conexao->close();
             updateLocalDetalheFilterOptions(); 
             buscaNomeProfessorInput.value = '';
             currentPage = 1; // Reseta para a primeira página
+            currentSortColumn = 'data_envio'; // Reseta a ordenação para o padrão
+            currentSortOrder = 'DESC'; // Reseta a ordem para o padrão
             // Recarrega os chamados sem filtros
             fetchAndDisplayChamados(); 
         }
@@ -899,11 +1001,17 @@ $conexao->close();
             const initialLocalTipo = urlParams.get('local_tipo') || '';
             const initialBuscaNome = urlParams.get('busca_nome_professor') || '';
             const initialPage = urlParams.get('page') ? parseInt(urlParams.get('page')) : 1;
+            
+            // NOVO: Obtém a ordenação inicial da URL
+            const initialSortColumn = urlParams.get('sort_column') || 'data_envio';
+            const initialSortOrder = urlParams.get('sort_order') || 'DESC';
 
             if (initialStatus) statusSelect.value = initialStatus;
             if (initialLocalTipo) localTipoSelect.value = initialLocalTipo;
             if (initialBuscaNome) buscaNomeProfessorInput.value = initialBuscaNome;
             currentPage = initialPage;
+            currentSortColumn = initialSortColumn; // Define a coluna de ordenação inicial
+            currentSortOrder = initialSortOrder; // Define a ordem de ordenação inicial
 
             // Chamar updateLocalDetalheFilterOptions para garantir que o filtro de detalhe seja populado corretamente
             // e que o valor inicial seja selecionado.
