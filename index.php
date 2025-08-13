@@ -24,6 +24,7 @@ if (isset($_SESSION['mensagem'])) {
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inclui a fonte Montserrat do Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <link rel="icon" href="../image/favicon.ico" type="image/x-icon">
     <style>
         /* Define a cor base personalizada para facilitar o uso no Tailwind */
         :root {
