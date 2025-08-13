@@ -18,6 +18,8 @@
 // ATUALIZADO: Adicionado link para "Abrir Chamado".
 // ATUALIZADO: Adicionada paginação de 10 em 10 chamados.
 // NOVO: Adicionada funcionalidade de ordenação de colunas clicáveis na tabela.
+// NOVO: A edição de status agora é feita através de um modal, removendo o dropdown na tabela.
+// NOVO: O botão de edição de status foi movido de volta para a coluna 'Ações'.
 
 // Inclui o arquivo de conexão com o banco de dados e inicia a sessão.
 require_once '../conexao.php'; // Caminho ajustado para acessar conexao.php na pasta pai
@@ -282,37 +284,20 @@ $conexao->close();
             background-color: #dc2626;
         }
 
-        /* Estilos para o dropdown de status */
-        .status-dropdown {
-            position: absolute;
-            background-color: white;
+        /* Estilos para as opções de status no modal */
+        .status-option {
+            padding: 10px 15px;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 6px;
             border: 1px solid #e5e7eb;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            z-index: 10;
-            min-width: 120px; /* Largura mínima para o dropdown */
-            text-align: left;
-            padding: 0.5rem;
-            top: 100%; /* Posiciona abaixo do botão */
-            left: 50%;
-            transform: translateX(-50%); /* Centraliza o dropdown */
-            margin-top: 5px; /* Pequena margem do botão */
-        }
-        .status-dropdown .status-option {
-            display: block;
-            padding: 0.4rem 0.8rem;
-            color: #374151;
-            text-decoration: none;
             cursor: pointer;
-            border-radius: 0.3rem;
+            transition: transform 0.2s ease-in-out, background-color 0.2s;
         }
-        .status-dropdown .status-option:hover {
-            background-color: #f3f4f6;
+        .status-option:hover {
+            transform: scale(1.02);
         }
-        /* Cores para as opções de status no dropdown */
-        .status-dropdown .status-option.Pendente { color: #92400e; }
-        .status-dropdown .status-option.Em-andamento { color: #1e40af; }
-        .status-dropdown .status-option.Resolvido { color: #065f46; }
 
         /* Utilitário para esconder/mostrar */
         .hidden {
@@ -613,6 +598,28 @@ $conexao->close();
         </div>
     </div>
 
+    <div id="statusEditModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Alterar Status do Chamado <span id="modalStatusId"></span></h2>
+                <button class="modal-close-btn" id="closeStatusModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="flex flex-col gap-4">
+                    <button type="button" class="status-badge status-option status-Pendente" data-status="Pendente">
+                        Pendente
+                    </button>
+                    <button type="button" class="status-badge status-option status-Em-andamento" data-status="Em andamento">
+                        Em andamento
+                    </button>
+                    <button type="button" class="status-badge status-option status-Resolvido" data-status="Resolvido">
+                        Resolvido
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let searchTimeout;
         let currentPage = 1; // Página atual
@@ -637,7 +644,7 @@ $conexao->close();
         const pageNumbersContainer = document.getElementById('pageNumbers');
 
 
-        // Referências para o Modal
+        // Referências para o Modal de Detalhes
         const chamadoDetailModal = document.getElementById('chamadoDetailModal');
         const closeModalBtn = document.getElementById('closeModalBtn');
         const modalId = document.getElementById('modalId');
@@ -649,56 +656,37 @@ $conexao->close();
         const modalStatus = document.getElementById('modalStatus');
         const modalDataEnvio = document.getElementById('modalDataEnvio');
 
-        // Função para fechar todos os dropdowns de status abertos
-        function closeAllStatusDropdowns() {
-            document.querySelectorAll('.status-dropdown').forEach(dropdown => {
-                dropdown.classList.add('hidden');
-            });
-        }
+        // NOVO: Referências para o Modal de Status
+        const statusEditModal = document.getElementById('statusEditModal');
+        const closeStatusModalBtn = document.getElementById('closeStatusModalBtn');
+        const modalStatusId = document.getElementById('modalStatusId');
+        const statusOptions = statusEditModal.querySelectorAll('.status-option');
+
 
         // Função para anexar listeners aos botões de ação (chamada após carregar a tabela)
         function attachActionListeners() {
-            // Adiciona listeners aos botões de edição de status
-            document.querySelectorAll('.edit-status-btn').forEach(button => {
+            // Adiciona listeners para o botão de info
+            document.querySelectorAll('.info-btn').forEach(button => {
                 button.addEventListener('click', function() {
-                    const chamadoId = this.dataset.id;
-                    const dropdown = document.getElementById(`status-dropdown-${chamadoId}`);
+                    const data = this.dataset; // Acessa todos os data-atributos
+
+                    modalId.textContent = data.id;
+                    modalProfessor.textContent = data.professor;
                     
-                    // Fecha outros dropdowns antes de abrir este
-                    closeAllStatusDropdowns();
+                    // Lógica para display do Local (agora consistente com a tabela)
+                    if (data.localDetalhe === 'N/A' && data.localTipo === 'Carrinho') {
+                        modalLocalDisplay.textContent = data.localTipo; // Exibe "Carrinho"
+                    } else {
+                        modalLocalDisplay.textContent = data.localDetalhe; // Exibe o detalhe do local
+                    }
                     
-                    dropdown.classList.toggle('hidden'); // Alterna a visibilidade
-                });
-            });
+                    modalNumeroComputador.textContent = data.numeroComputador;
+                    modalEquipamentos.textContent = data.equipamentos.replace(/,/g, ', '); // Formata equipamentos
+                    modalDescricao.textContent = data.descricao;
+                    modalStatus.textContent = data.status;
+                    modalDataEnvio.textContent = data.dataEnvio;
 
-            // Adiciona listeners às opções dentro dos dropdowns de status
-            document.querySelectorAll('.status-dropdown .status-option').forEach(option => {
-                option.addEventListener('click', function() {
-                    const chamadoId = this.dataset.id;
-                    const novoStatus = this.dataset.status;
-
-                    // Cria um formulário temporário e o submete
-                    const form = document.createElement('form');
-                    form.action = 'alterar_status.php';
-                    form.method = 'POST';
-                    form.style.display = 'none'; // Oculta o formulário
-
-                    const idInput = document.createElement('input');
-                    idInput.type = 'hidden';
-                    idInput.name = 'id';
-                    idInput.value = chamadoId;
-                    form.appendChild(idInput);
-
-                    const statusInput = document.createElement('input');
-                    statusInput.type = 'hidden';
-                    statusInput.name = 'novo_status';
-                    statusInput.value = novoStatus;
-                    form.appendChild(statusInput);
-
-                    document.body.appendChild(form);
-                    form.submit();
-
-                    closeAllStatusDropdowns(); // Fecha o dropdown após a seleção
+                    chamadoDetailModal.classList.remove('hidden'); // Mostra o modal
                 });
             });
 
@@ -724,40 +712,42 @@ $conexao->close();
                 });
             });
 
-            // Adiciona listener para o botão de info
-            document.querySelectorAll('.info-btn').forEach(button => {
+            // NOVO: Adiciona listener para abrir o modal de edição de status
+            document.querySelectorAll('.edit-status-btn').forEach(button => {
                 button.addEventListener('click', function() {
-                    const data = this.dataset; // Acessa todos os data-atributos
+                    const chamadoId = this.dataset.id;
+                    modalStatusId.textContent = chamadoId;
+                    statusEditModal.classList.remove('hidden'); // Mostra o modal
 
-                    modalId.textContent = data.id;
-                    modalProfessor.textContent = data.professor;
-                    
-                    // Lógica para display do Local (agora consistente com a tabela)
-                    if (data.localDetalhe === 'N/A' && data.localTipo === 'Carrinho') {
-                        modalLocalDisplay.textContent = data.localTipo; // Exibe "Carrinho"
-                    } else {
-                        modalLocalDisplay.textContent = data.localDetalhe; // Exibe o detalhe do local
-                    }
-                    
-                    modalNumeroComputador.textContent = data.numeroComputador;
-                    modalEquipamentos.textContent = data.equipamentos.replace(/,/g, ', '); // Formata equipamentos
-                    modalDescricao.textContent = data.descricao;
-                    modalStatus.textContent = data.status;
-                    modalDataEnvio.textContent = data.dataEnvio;
+                    // Adiciona listeners para as opções de status dentro do modal
+                    statusOptions.forEach(option => {
+                        option.onclick = function() {
+                            const novoStatus = this.dataset.status;
+                            const form = document.createElement('form');
+                            form.action = 'alterar_status.php';
+                            form.method = 'POST';
+                            form.style.display = 'none';
 
-                    chamadoDetailModal.classList.remove('hidden'); // Mostra o modal
-                    closeAllStatusDropdowns(); // Fecha qualquer dropdown de status aberto
+                            const idInput = document.createElement('input');
+                            idInput.type = 'hidden';
+                            idInput.name = 'id';
+                            idInput.value = chamadoId;
+                            form.appendChild(idInput);
+
+                            const statusInput = document.createElement('input');
+                            statusInput.type = 'hidden';
+                            statusInput.name = 'novo_status';
+                            statusInput.value = novoStatus;
+                            form.appendChild(statusInput);
+
+                            document.body.appendChild(form);
+                            form.submit();
+                            statusEditModal.classList.add('hidden'); // Esconde o modal
+                        };
+                    });
                 });
             });
-
-            // Fecha os dropdowns se clicar fora deles
-            document.addEventListener('click', function(event) {
-                if (!event.target.closest('.action-button') && !event.target.closest('.status-dropdown')) {
-                    closeAllStatusDropdowns();
-                }
-            });
         }
-
 
         // NOVO: Função para anexar listeners de ordenação aos cabeçalhos da tabela
         function attachSortListeners() {
@@ -982,7 +972,7 @@ $conexao->close();
             }
         });
 
-        // Event Listeners para o Modal
+        // Event Listeners para o Modal de Detalhes
         closeModalBtn.addEventListener('click', () => {
             chamadoDetailModal.classList.add('hidden');
         });
@@ -990,6 +980,17 @@ $conexao->close();
         chamadoDetailModal.addEventListener('click', (event) => {
             if (event.target === chamadoDetailModal) {
                 chamadoDetailModal.classList.add('hidden');
+            }
+        });
+
+        // NOVO: Event Listeners para o Modal de Status
+        closeStatusModalBtn.addEventListener('click', () => {
+            statusEditModal.classList.add('hidden');
+        });
+        
+        statusEditModal.addEventListener('click', (event) => {
+            if (event.target === statusEditModal) {
+                statusEditModal.classList.add('hidden');
             }
         });
 

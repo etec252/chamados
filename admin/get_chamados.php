@@ -10,6 +10,8 @@
 // ATUALIZADO: Adicionado botão de 'info' para abrir modal com detalhes.
 // ATUALIZADO: Implementação da lógica de paginação (LIMIT e OFFSET).
 // CORRIGIDO: Aviso "Argument #2 must be passed by reference" para mysqli_stmt::bind_param.
+// NOVO: A edição de status agora é feita através de um modal, removendo o dropdown na tabela.
+// NOVO: O botão de edição de status foi movido de volta para a coluna 'Ações'.
 
 // Inclui o arquivo de conexão com o banco de dados.
 require_once '../conexao.php'; // Caminho ajustado para acessar conexao.php na pasta pai
@@ -24,6 +26,15 @@ $busca_nome_professor = isset($_GET['busca_nome_professor']) ? trim($_GET['busca
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 10; // Default de 10 registros por página
 $offset = ($page - 1) * $limit;
+
+// Variáveis de Ordenação (recebidas via GET)
+$sort_column = isset($_GET['sort_column']) ? $_GET['sort_column'] : 'data_envio';
+$sort_order = isset($_GET['sort_order']) ? $_GET['sort_order'] : 'DESC';
+$allowed_columns = ['id', 'nome_professor', 'status', 'data_envio']; // Colunas permitidas para ordenação
+if (!in_array($sort_column, $allowed_columns)) {
+    $sort_column = 'data_envio';
+}
+$sort_order = strtoupper($sort_order) === 'ASC' ? 'ASC' : 'DESC';
 
 // Constrói a query SQL base para CONTAR o total de registros (sem LIMIT e OFFSET)
 $sql_count = "SELECT COUNT(*) AS total FROM chamados WHERE 1=1";
@@ -99,7 +110,7 @@ if (!empty($busca_nome_professor)) {
 }
 
 // Adiciona ORDER BY e LIMIT/OFFSET
-$sql .= " ORDER BY data_envio DESC LIMIT ? OFFSET ?";
+$sql .= " ORDER BY " . $sort_column . " " . $sort_order . " LIMIT ? OFFSET ?";
 $params[] = $limit;
 $types .= "ii"; // 'i' para inteiro para LIMIT e OFFSET
 $params[] = $offset;
@@ -196,11 +207,6 @@ if (!empty($chamados)): ?>
                         <button type="button" class="action-button delete-btn" data-id="<?php echo htmlspecialchars($chamado['id']); ?>">
                             <i class="fas fa-trash-alt"></i>
                         </button>
-                    </div>
-                    <div id="status-dropdown-<?php echo htmlspecialchars($chamado['id']); ?>" class="status-dropdown hidden">
-                        <span class="status-option Pendente" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Pendente">Pendente</span>
-                        <span class="status-option Em-andamento" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Em andamento">Em andamento</span>
-                        <span class="status-option Resolvido" data-id="<?php echo htmlspecialchars($chamado['id']); ?>" data-status="Resolvido">Resolvido</span>
                     </div>
                 </td>
             </tr>
